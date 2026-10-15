@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+dist/
+outputs/
+data/*.json
+__pycache__/*
+!__pycache__/bot.cpython-312.pyc
+*.log
+cf_*.txt
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.cursor/
+Thumbs.db
+.DS_Store

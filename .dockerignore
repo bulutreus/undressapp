@@ -1,0 +1,16 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.cursor
+*.log
+data/*.json
+outputs
+Thumbs.db
+.DS_Store
+
+!__pycache__/
+!__pycache__/bot.cpython-312.pyc

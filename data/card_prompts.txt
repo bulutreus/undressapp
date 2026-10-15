@@ -1,0 +1,83 @@
+# TEK WORKFLOW (CloLessAi.json / COMFY_WORKFLOW_PATH) — her kart icin ayri satir.
+# Format: dosya_adi=tam prompt metni (ilk = sol tarafta anahtar, sag Comfy metin dugumune gider)
+# Anahtar: miniapp'teki gorsel dosya adi — or. bikini.avif veya bikini (ucu eslesir)
+# Eslesemezse sira: sekme (undress/sex) -> video ise "video" -> (opsiyonel) form prompt
+# # ile yorum; bos satir serbest. Degisiklikten sonra API'yi yeniden baslat (veya her istekte dosya okunur).
+#
+# --- Undress ---
+undress.avif=remove all clothes
+# Bikini karti: Comfy metin dugumune giden tam ifade (yalnizca bu prompt)
+bikini.avif=dress up bikini
+bikini=dress up bikini
+shibari.avif=Remove the clothes, wrap the body in a sexy way with rope.
+lingerie.avif=PUT ON THE TOP, BOTTOM, AND UNDERWEAR.
+bdsm.avif=DRESS UP IN A SEXY BDSM OUTFIT
+xray.avif=dress her in a see-through, sexy outfit.
+#
+# --- Sex ---
+ass.avif=A completely naked woman, with her back to the camera, looks at the camera while showing her vagina.
+bath.webp=woman in the bathroom, wet body, completely naked
+bbc.avif=In a close-up shot, a woman is licking a black man's penis.
+blowjob.In a close-up shot from the front, a woman with pale skin is licking a man's penis; realistic.
+cowgirl.avif=A naked woman is looking towards the camera; beneath her, a muscular man has his penis inserted into her vagina, but the man's head is out of frame.
+cumshot.avif=The woman is completely naked and has a lot of semen on her breasts.
+dancing.avif=nude erotic dance
+doggy.avif=completely naked doggy style sex
+feet.avif=fcompletely naked, with both legs raised in the air, focusing on the vagina.
+fingering.avif=Completely naked, she's fingering her pussy.
+flashing.avif=She lifted her t-shirt from underneath until her breasts were exposed.
+hand-bra.webp=The woman should be completely naked and cup her breasts with her hands.
+handjob.avif=The woman was completely naked, kneeling and holding a penis that protruded from the right side of the frame.
+kneeling.avif=The woman is standing completely naked in a kneeling position.
+leaked.avif=The woman is completely naked and looking at the camera through the gap in the door.
+missionary.avif=The woman was completely naked and lying on her back in bed in the missionary position.
+pussy.avif=The woman is completely naked, with her back to the camera, showing her vagina in detail in a very close-up shot.
+removing-panties.avif=The woman is completely naked, with her back to the camera, pulling down her panties, which have slid down to her legs.
+selfie.avif=The woman is taking a selfie completely naked.
+showering.avif=The woman is completely naked in the shower, her body wet, with water pouring down from above.
+side.avif=Lying completely naked in bed, legs spread apart, having sex. side wiew
+spread-ass.avif=Completely naked, with her back turned, spreading her buttocks apart with both hands while looking at the camera.
+spread-legs.avif=The woman was completely naked and sitting with her legs spread apart.
+standing.avif=The woman is naked and standing, posing for the camera.
+titsjob.avif=The man inserts his penis between the woman's bare breasts. Close-up of the woman's face and breasts.
+upskirt.avif=The woman is wearing a red mini-skirt, her vagina is visible, and the camera angle is from below, frontal view.
+#
+# --- Video (cinematic + kisa konu) ---
+undress.mp4=undress, cinematic, smooth motion
+riding.mp4=riding, cinematic, smooth
+blowjob.mp4=blowjob, cinematic, smooth
+handjob.mp4=handjob, cinematic, smooth
+double-penetration.mp4=double penetration, cinematic
+spit-roast.mp4=spit roast, cinematic
+ahegao.mp4=ahegao, cinematic, expressive
+anal.mp4=anal, cinematic, smooth
+bare-feet.mp4=bare feet, cinematic
+bouncy-tits.mp4=bouncy tits, cinematic
+breast-insertion.mp4=breast focus, cinematic
+bukkake.mp4=bukkake, cinematic
+cumshot.mp4=cumshot, cinematic, close-up
+deepthroat.mp4=deepthroat, cinematic
+dick-kiss.mp4=kissing, close-up, cinematic
+dildo.mp4=dildo, cinematic
+doggy.mp4=doggy style, cinematic, smooth
+drill.mp4=fast rhythm, cinematic
+fingering.mp4=fingering, cinematic
+french-kiss.mp4=French kiss, cinematic
+heleed-feet.mp4=feet, stockings hint, cinematic
+huge-cum.mp4=heavy cum, cinematic
+missionary.mp4=missionary, cinematic, smooth
+mouth-cum.mp4=mouth, cinematic
+pregnant.mp4=pregnant look, cinematic
+pussy-licking.mp4=cunnilingus, cinematic
+sex-spoon.mp4=spooning, cinematic, smooth
+show-pussy.mp4=spread, cinematic
+squirt.mp4=squirt, cinematic
+stocking-feet.mp4=stockings, feet, cinematic
+twerk.mp4=twerk, cinematic
+xl-breast.mp4=large bust, cinematic
+custom-prompt-orange-scene.mp4=custom scene, warm orange, cinematic
+#
+# --- Sekme yedegi ---
+undress=fashion, photorealistic, clean light
+sex=explicit, photorealistic, soft light
+video=cinematic, smooth motion, high detail

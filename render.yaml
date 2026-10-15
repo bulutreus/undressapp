@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: undressapp
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    domains:
+      - undressapp.shop
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: MINIAPP_URL
+        value: https://undressapp.shop
+      - key: COMFYUI_URL
+        sync: false

@@ -1,0 +1,6 @@
+python-telegram-bot==21.10
+aiohttp==3.13.3
+fastapi
+uvicorn[standard]
+python-dotenv
+python-multipart

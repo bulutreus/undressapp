@@ -1,0 +1,28 @@
+{
+  "positions": [
+    {
+      "id": "standing",
+      "tr": "Ayakta / tam boy",
+      "en": "Standing / full body",
+      "prompt": "Natural standing full-body pose, feet visible, weight balanced, arms relaxed, looking at the camera, keep the same person and environment, photorealistic."
+    },
+    {
+      "id": "sitting",
+      "tr": "Oturur",
+      "en": "Sitting",
+      "prompt": "Sitting on a simple chair, relaxed posture, hands on knees, camera at eye level, same identity and room, photorealistic."
+    },
+    {
+      "id": "lying",
+      "tr": "Yatarken",
+      "en": "Lying",
+      "prompt": "Lying on the back in a relaxed neutral pose, soft even lighting, same face and body proportions, same background, photorealistic."
+    },
+    {
+      "id": "portrait",
+      "tr": "Portre (yakın)",
+      "en": "Close portrait",
+      "prompt": "Tight head-and-shoulders portrait, neutral expression, soft skin detail, same identity, same lighting mood, high quality, photorealistic."
+    }
+  ]
+}

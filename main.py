@@ -412,7 +412,25 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup() -> None:
         settings = WebSettings.from_env()
-        resolved_url = await detect_comfyui_url(settings.comfyui_url)
+        access_client_id = os.getenv("COMFYUI_ACCESS_CLIENT_ID", "").strip()
+        access_client_secret = os.getenv("COMFYUI_ACCESS_CLIENT_SECRET", "").strip()
+        if bool(access_client_id) != bool(access_client_secret):
+            raise ValueError(
+                "Cloudflare Access icin COMFYUI_ACCESS_CLIENT_ID ve "
+                "COMFYUI_ACCESS_CLIENT_SECRET birlikte ayarlanmalidir."
+            )
+        comfyui_headers = (
+            {
+                "CF-Access-Client-Id": access_client_id,
+                "CF-Access-Client-Secret": access_client_secret,
+            }
+            if access_client_id and access_client_secret
+            else None
+        )
+        resolved_url = await detect_comfyui_url(
+            settings.comfyui_url,
+            request_headers=comfyui_headers,
+        )
         settings = WebSettings(
             bot_token=settings.bot_token,
             comfyui_url=resolved_url,
@@ -430,6 +448,7 @@ def create_app() -> FastAPI:
         app.state.settings = settings
         app.state.session = aiohttp.ClientSession(
             base_url=settings.comfyui_url,
+            headers=comfyui_headers,
             connector=aiohttp.TCPConnector(limit=100, keepalive_timeout=30),
         )
         app.state.client = CloLessClient(settings, app.state.session)

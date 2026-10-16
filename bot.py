@@ -875,7 +875,10 @@ async def _try_referral_reward_on_start(
         logger.info("Referral uygulanmadı (start): %s", reason)
 
 
-async def detect_comfyui_url(preferred_url: str) -> str:
+async def detect_comfyui_url(
+    preferred_url: str,
+    request_headers: dict[str, str] | None = None,
+) -> str:
     candidates = []
     for url in (preferred_url, "http://127.0.0.1:8002", "http://127.0.0.1:8000", "http://127.0.0.1:8188"):
         clean = (url or "").rstrip("/")
@@ -885,7 +888,11 @@ async def detect_comfyui_url(preferred_url: str) -> str:
     timeout = aiohttp.ClientTimeout(total=3)
     for base_url in candidates:
         try:
-            async with aiohttp.ClientSession(base_url=base_url, timeout=timeout) as probe:
+            async with aiohttp.ClientSession(
+                base_url=base_url,
+                headers=request_headers,
+                timeout=timeout,
+            ) as probe:
                 async with probe.get("/system_stats") as response:
                     if response.status < 400:
                         logger.info("ComfyUI endpoint bulundu: %s", base_url)
@@ -2973,7 +2980,25 @@ async def size_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def post_init(app: Application) -> None:
     settings = app.bot_data["settings"]
-    resolved_url = await detect_comfyui_url(settings.comfyui_url)
+    access_client_id = os.getenv("COMFYUI_ACCESS_CLIENT_ID", "").strip()
+    access_client_secret = os.getenv("COMFYUI_ACCESS_CLIENT_SECRET", "").strip()
+    if bool(access_client_id) != bool(access_client_secret):
+        raise ValueError(
+            "Cloudflare Access icin COMFYUI_ACCESS_CLIENT_ID ve "
+            "COMFYUI_ACCESS_CLIENT_SECRET birlikte ayarlanmalidir."
+        )
+    comfyui_headers = (
+        {
+            "CF-Access-Client-Id": access_client_id,
+            "CF-Access-Client-Secret": access_client_secret,
+        }
+        if access_client_id and access_client_secret
+        else None
+    )
+    resolved_url = await detect_comfyui_url(
+        settings.comfyui_url,
+        request_headers=comfyui_headers,
+    )
     app.bot_data["settings"] = Settings(
         telegram_token=settings.telegram_token,
         comfyui_url=resolved_url,
@@ -2988,6 +3013,7 @@ async def post_init(app: Application) -> None:
     )
     session = aiohttp.ClientSession(
         base_url=resolved_url,
+        headers=comfyui_headers,
         connector=aiohttp.TCPConnector(limit=100, keepalive_timeout=30)
     )
     app.bot_data["cloless_client"] = CloLessClient(app.bot_data["settings"], session)

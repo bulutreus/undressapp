@@ -8,17 +8,37 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <meta name="theme-color" content="#000000" />
     <meta name="color-scheme" content="dark" />
+    <script>
+      try {
+        if (localStorage.getItem("undress_age_gate_accepted") === "1") {
+          document.documentElement.classList.add("age-gate-accepted");
+        }
+      } catch (_) {}
+    </script>
     <link rel="preload" href="./favicon.webp" as="image" type="image/webp" />
     <link
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" href="./favicon.webp" type="image/webp" />
-    <link rel="stylesheet" href="./styles.css?v=20260620-price" />
+    <link rel="stylesheet" href="./styles.css?v=20261016-age-gate" />
     <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script defer src="./script.js?v=20260620-price"></script>
+    <script defer src="./script.js?v=20261016-static-plan-routes"></script>
   </head>
   <body>
+    <section id="ageGate" class="age-gate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle">
+      <div class="age-gate__panel">
+        <div class="age-gate__brand"><span class="age-gate__mark" aria-hidden="true">18+</span><span id="ageGateTitle">Undress App</span></div>
+        <ol class="age-gate__rules">
+          <li><span class="age-gate__number">1</span><span>This website contains adult content, including nudity and sexually explicit material.</span></li>
+          <li><span class="age-gate__number">2</span><span>Uploading or using images of minors or of any person without their explicit consent is strictly prohibited.</span></li>
+          <li><span class="age-gate__number">3</span><span>You bear full responsibility for any images you create on this platform.</span></li>
+          <li><span class="age-gate__number">4</span><span>By clicking “Accept,” you confirm that you are at least the age of majority in your jurisdiction, agree to the terms above, and consent to viewing sexually explicit content.</span></li>
+        </ol>
+        <p class="age-gate__notice">18+ · Age restricted · Consent required</p>
+        <button id="ageGateAccept" class="age-gate__accept" type="button">Accept</button>
+      </div>
+    </section>
     <main class="app-shell">
       <header class="top-banner">
         <div class="app-brand">
@@ -260,5 +280,28 @@
         </button>
       </footer>
     </main>
+    <script>
+      (function () {
+        function openPlanFromStartParam() {
+          var params = new URLSearchParams(window.location.search);
+          var startParam = params.get("tgWebAppStartParam") ||
+            (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) || "";
+          var match = /^pay_(pro|creator)_(monthly|yearly)$/.exec(startParam);
+          if (!match) return;
+          try {
+            var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+            if (initData) sessionStorage.setItem("undress_pending_payment_init_data", initData);
+          } catch (_) {}
+          var destination = "./continue.html?plan=" + encodeURIComponent(match[1]) +
+            "&billing=" + encodeURIComponent(match[2]) + "&payment=telegram";
+          window.location.replace(destination);
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", openPlanFromStartParam, { once: true });
+        } else {
+          openPlanFromStartParam();
+        }
+      })();
+    </script>
   </body>
 </html>

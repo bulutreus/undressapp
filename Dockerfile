@@ -1,4 +1,4 @@
-﻿# Mini App + API: uvicorn (PORT ortam deÄŸiÅŸkeni, Render/Fly/Railway uyumlu)
+# Mini App + API: uvicorn (PORT ortam deÃ„Å¸iÃ…Å¸keni, Render/Fly/Railway uyumlu)
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -13,10 +13,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py bot.py telegram_init_data.py ./
 COPY __pycache__/bot.cpython-312.pyc ./__pycache__/
 COPY miniapp ./miniapp
+COPY pro.html ./pro.html
+COPY creator.html ./creator.html
+COPY pro_files ./pro_files
 COPY assets ./assets
 COPY data/card_prompts.txt ./data/card_prompts.txt
 COPY CloLessAi.json ./
-# Workflow ve Ã§Ä±ktÄ± yolu; container iÃ§inde aynÄ± isim
+# Workflow ve ÃƒÂ§Ã„Â±ktÃ„Â± yolu; container iÃƒÂ§inde aynÃ„Â± isim
 ENV COMFY_WORKFLOW_PATH=/app/CloLessAi.json
 ENV COMFY_OUTPUT_DIR=/app/outputs
 ENV BOT_DATA_DIR=/app/data

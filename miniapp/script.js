@@ -1,6 +1,7 @@
 const SUPPORTED_LANGS = ["en", "tr", "ar"];
 const DEFAULT_LANG = "en";
 const LANG_STORAGE_KEY = "hottok_lang";
+const FIRST_SITE_VISIT_BOT_REDIRECT_KEY = "uapp_first_visit_bot_redirected_v2";
 
 const I18N = {
   en: {
@@ -966,34 +967,9 @@ async function getMiniappConfig() {
 
 function setupStoreModal() {
   const openBtn = document.getElementById("openStoreBtn");
-  const modal = document.getElementById("storeModal");
-  const closeBtn = document.getElementById("closeStoreBtn");
-  if (!openBtn || !modal || !closeBtn) return;
-
-  const openStore = () => {
-    syncDiamondBalance();
-    modal.classList.remove("is-hidden");
-    modal.setAttribute("aria-hidden", "false");
-  };
-
-  const closeStore = () => {
-    modal.classList.add("is-hidden");
-    modal.setAttribute("aria-hidden", "true");
-  };
-
-  openBtn.addEventListener("click", openStore);
-  closeBtn.addEventListener("click", closeStore);
-  modal.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    if (target.closest("[data-store-close]")) {
-      closeStore();
-      return;
-    }
-    const buyBtn = target.closest("[data-store-buy]");
-    if (!buyBtn) return;
-    closeStore();
-    redirectToBuy(0);
+  if (!openBtn) return;
+  openBtn.addEventListener("click", () => {
+    window.location.assign("/plans/pro/");
   });
 }
 
@@ -1967,6 +1943,48 @@ async function runComfyFlow() {
 }
 
 async function bootApp() {
+  const ageGate = document.getElementById("ageGate");
+  const ageGateAccept = document.getElementById("ageGateAccept");
+  let ageAccepted = false;
+  try {
+    ageAccepted = localStorage.getItem("undress_age_gate_accepted") === "1";
+  } catch (_) {}
+  if (ageAccepted) ageGate.classList.add("is-hidden");
+  ageGateAccept.addEventListener("click", () => {
+    ageAccepted = true;
+    try { localStorage.setItem("undress_age_gate_accepted", "1"); } catch (_) {}
+    ageGate.classList.add("is-hidden");
+  });
+
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const launchedFromTelegram = Boolean(tg && tg.initData);
+  let alreadyRedirected = false;
+  try {
+    alreadyRedirected = localStorage.getItem(FIRST_SITE_VISIT_BOT_REDIRECT_KEY) === "1";
+  } catch (_) {
+    // Continue normally when browser storage is unavailable.
+  }
+
+  // Telegram users have already entered through the bot; avoid bouncing them back.
+  if (!launchedFromTelegram && !alreadyRedirected && ageAccepted) {
+    const cfg = await getMiniappConfig();
+    if (cfg && cfg.bot_url) {
+      try {
+        localStorage.setItem(FIRST_SITE_VISIT_BOT_REDIRECT_KEY, "1");
+      } catch (_) {
+        // The redirect still works when browser storage is unavailable.
+      }
+      window.location.replace(cfg.bot_url);
+      return;
+    }
+  } else if (launchedFromTelegram && !alreadyRedirected) {
+    try {
+      localStorage.setItem(FIRST_SITE_VISIT_BOT_REDIRECT_KEY, "1");
+    } catch (_) {
+      // Ignore storage restrictions in the Telegram WebView.
+    }
+  }
+
   initLanguageSystem();
   await getMiniappConfig();
   renderVideoCards("videoPresetsGrid", videoPresetFiles);

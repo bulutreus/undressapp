@@ -21,12 +21,13 @@ import aiohttp
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from bot import (
     CloLessClient,
+    PLAN_STARS_PACKAGES,
     PHOTO_COST_DIAMONDS,
     VIP_PACKAGES,
     _deduct_diamonds,
@@ -186,6 +187,12 @@ def _refund_deducted_components(
 
 class BalanceBody(BaseModel):
     init_data: str = Field(..., min_length=1)
+
+
+class SubscriptionInvoiceBody(BaseModel):
+    init_data: str = Field(default="", max_length=8192)
+    plan: str = Field(..., min_length=1, max_length=16)
+    billing: str = Field(..., min_length=1, max_length=16)
 
 
 class GalleryDeleteBody(BaseModel):
@@ -439,6 +446,13 @@ def create_app() -> FastAPI:
                 StaticFiles(directory=str(assets_dir)),
                 name="assets",
             )
+        pro_files_dir = PROJECT_DIR / "pro_files"
+        if pro_files_dir.is_dir():
+            app.mount(
+                "/pro_files",
+                StaticFiles(directory=str(pro_files_dir)),
+                name="pro_files",
+            )
         static_dir = settings.miniapp_dir
         if static_dir.is_dir():
             app.mount(
@@ -466,15 +480,33 @@ def create_app() -> FastAPI:
         settings: WebSettings = app.state.settings
         return JSONResponse({"ok": True, "comfyui_url": settings.comfyui_url})
 
+    @app.get("/pro")
+    async def pro_page() -> FileResponse:
+        return FileResponse(
+            PROJECT_DIR / "pro.html",
+            media_type="text/html",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/creator")
+    async def creator_page() -> FileResponse:
+        return FileResponse(
+            PROJECT_DIR / "creator.html",
+            media_type="text/html",
+            headers={"Cache-Control": "no-store"},
+        )
+
     @app.get("/api/miniapp/config")
     async def miniapp_config() -> JSONResponse:
         bot_username = (os.getenv("BOT_USERNAME") or "").strip().lstrip("@")
         buy_url = f"https://t.me/{bot_username}?start=buy" if bot_username else ""
+        bot_url = f"https://t.me/{bot_username}?start=welcome" if bot_username else ""
         prices = _miniapp_price_table()
         return JSONResponse(
             {
                 "ok": True,
                 "bot_username": bot_username,
+                "bot_url": bot_url,
                 "buy_url": buy_url,
                 "prices": prices,
                 "photo_cost": prices["undress"],
@@ -497,6 +529,46 @@ def create_app() -> FastAPI:
                 "user_id": uid,
             }
         )
+
+    @app.post("/api/miniapp/subscription-invoice")
+    async def miniapp_subscription_invoice(body: SubscriptionInvoiceBody) -> JSONResponse:
+        settings: WebSettings = app.state.settings
+        parsed = validate_and_parse_init_data(body.init_data, settings.bot_token) if body.init_data.strip() else None
+        if body.init_data.strip() and not parsed:
+            raise HTTPException(status_code=401, detail="Telegram oturumu doğrulanamadı.")
+
+        plan = body.plan.strip().lower()
+        billing = body.billing.strip().lower()
+        plan_id = f"{plan}_{billing}"
+        plan_package = PLAN_STARS_PACKAGES.get(plan_id)
+        if not plan_package:
+            raise HTTPException(status_code=400, detail="Bu plan Telegram Stars ile satın alınamıyor.")
+
+        _plan, _billing, stars, _days = plan_package
+        months = 12 if billing == "yearly" else 1
+        title = f"{plan.title()} Plan"
+        description = f"{plan.title()} Plan, {months} mo."
+        user_id = int(parsed["user_id"]) if parsed else None
+        payload = f"plan|{plan_id}|{user_id}" if user_id else f"plan|{plan_id}"
+        api_url = f"https://api.telegram.org/bot{settings.bot_token}/createInvoiceLink"
+        request_body = {
+            "title": title,
+            "description": description,
+            "payload": payload,
+            "provider_token": "",
+            "currency": "XTR",
+            "prices": [{"label": title, "amount": stars}],
+        }
+        try:
+            async with app.state.session.post(api_url, json=request_body) as response:
+                result = await response.json(content_type=None)
+        except aiohttp.ClientError as exc:
+            logger.warning("Telegram invoice link request failed: %s", exc)
+            raise HTTPException(status_code=502, detail="Telegram ödeme bağlantısı oluşturulamadı.") from exc
+        if not isinstance(result, dict) or not result.get("ok") or not result.get("result"):
+            logger.warning("Telegram invoice link rejected: %s", str(result)[:400])
+            raise HTTPException(status_code=502, detail="Telegram ödeme bağlantısı oluşturulamadı.")
+        return JSONResponse({"ok": True, "invoice_url": result["result"], "stars": stars})
 
     @app.post("/api/miniapp/profile")
     async def miniapp_profile(body: BalanceBody) -> JSONResponse:

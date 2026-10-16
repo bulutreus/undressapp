@@ -11,7 +11,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py bot.py telegram_init_data.py ./
-COPY __pycache__/bot.cpython-312.pyc ./__pycache__/
 COPY miniapp ./miniapp
 COPY pro.html ./pro.html
 COPY creator.html ./creator.html

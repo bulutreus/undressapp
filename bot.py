@@ -2058,6 +2058,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if args and (args[0] or "").strip().lower() == "buy":
         await buy_command(update, context)
         return
+    if args and (args[0] or "").strip().lower().startswith("plan_"):
+        plan_id = (args[0] or "").strip().lower()[5:]
+        await send_plan_invoice_from_start(update, context, plan_id)
+        return
 
     referrer_id = _parse_referrer_id_from_start_args(args)
     user = update.effective_user
@@ -2099,6 +2103,39 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             reply_markup=build_photo_tips_markup(lang),
             disable_web_page_preview=True,
         )
+
+
+async def send_plan_invoice_from_start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    plan_id: str,
+) -> None:
+    """Send a Telegram Stars subscription invoice from a website deep link."""
+    message = update.effective_message
+    user = update.effective_user
+    package = PLAN_STARS_PACKAGES.get(plan_id)
+    if not message or not user or not package:
+        if message:
+            await message.reply_text("Plan not found. Please return to the website and choose a valid plan.")
+        return
+
+    plan, billing, stars, _days = package
+    title = f"{plan.title()} Plan"
+    payload = f"plan|{plan_id}|{user.id}"
+    try:
+        await context.bot.send_invoice(
+            chat_id=message.chat_id,
+            title=title,
+            description=f"{plan.title()} Plan subscription ({'12 months' if billing == 'yearly' else '1 month'}).",
+            payload=payload,
+            provider_token=None,
+            currency="XTR",
+            prices=[LabeledPrice(title, int(stars))],
+            start_parameter=f"plan_{plan_id}"[:32],
+        )
+    except TelegramError as exc:
+        logger.warning("Plan invoice could not be sent (%s): %s", plan_id, exc)
+        await message.reply_text("Telegram payment could not be opened. Please try again from the website.")
 
 
 async def verify_channel_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

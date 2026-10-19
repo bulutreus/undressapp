@@ -21,6 +21,7 @@ import aiohttp
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -390,6 +391,7 @@ def _delete_gallery_file_for_user(*, output_dir: Path, parsed: dict, rel_raw: st
 
 def create_app() -> FastAPI:
     app = FastAPI(title="CloLess Mini App API", version="1.0.0")
+    app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
     _cors = (os.getenv("CORS_ALLOW_ORIGINS") or "*").strip()
     if _cors == "*":
         app.add_middleware(

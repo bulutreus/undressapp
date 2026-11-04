@@ -21,18 +21,15 @@ load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
 
 import aiohttp
 from telegram import (
-    BotCommand,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputFile,
     KeyboardButton,
     LabeledPrice,
     MenuButtonDefault,
-    MenuButtonWebApp,
     ReplyKeyboardMarkup,
     Update,
     User,
-    WebAppInfo,
 )
 from telegram.constants import ChatMemberStatus
 from telegram.error import TelegramError
@@ -41,8 +38,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
-    MessageHandler,
     PreCheckoutQueryHandler,
+    MessageHandler,
     filters,
 )
 
@@ -573,6 +570,21 @@ def _parse_vip_invoice_payload(payload: str | None) -> tuple[str, int] | None:
     return pkg_id, int(uid_s)
 
 
+def _parse_vip_split_payload(payload: str | None) -> tuple[str, int, str, int] | None:
+    if not payload:
+        return None
+    parts = payload.split("|")
+    if len(parts) != 5 or parts[0] != "vip_split":
+        return None
+    _, pkg_id, uid_s, order_id, part_s = parts
+    if pkg_id not in VIP_PACKAGES or not uid_s.isdigit() or not order_id.isalnum() or not part_s.isdigit():
+        return None
+    part = int(part_s)
+    if part < 1:
+        return None
+    return pkg_id, int(uid_s), order_id, part
+
+
 def _parse_card_invoice_payload(payload: str | None) -> tuple[str, int] | None:
     if not payload:
         return None
@@ -608,13 +620,6 @@ def build_vip_shop_markup() -> InlineKeyboardMarkup:
 
 def build_video_promo_markup(lang: str = "tr", *, offer_id: str = "", stars: int = 0) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    if MINIAPP_URL:
-        rows.append([
-            InlineKeyboardButton(
-                text=("🎬 Open Mini App" if lang == "en" else "🎬 Mini App'i Aç"),
-                web_app=WebAppInfo(url=MINIAPP_URL),
-            )
-        ])
     if offer_id and stars > 0:
         rows.append([
             InlineKeyboardButton(
@@ -750,6 +755,8 @@ async def _broadcast_hourly_ads(bot: Any) -> None:
     changed = False
     for key, value in db.items():
         if key == _USERS_META_KEY or not isinstance(value, dict):
+            continue
+        if value.get("auth_provider") == "google":
             continue
         if not str(key).isdigit():
             continue
@@ -938,7 +945,10 @@ class Settings:
             raise ValueError("TELEGRAM_BOT_TOKEN tanımlı değil.")
 
         workflow_path = Path(
-            os.getenv("COMFY_WORKFLOW_PATH", "CloLessAi.json")
+            os.getenv(
+                "COMFY_WORKFLOW_PATH",
+                str(Path(__file__).resolve().parent / "workflows" / "default-workflow.json"),
+            )
         ).expanduser()
         if not workflow_path.is_absolute():
             workflow_path = Path.cwd() / workflow_path
@@ -1832,17 +1842,11 @@ def _photo_tips_intro_text(lang: str = "tr") -> str:
     return "Open the website to use the service. Payments are made only through this Telegram bot." if lang == "en" else "Hizmeti kullanmak i?in web sitesini a??n. ?demeler yaln?zca bu Telegram botundan yap?l?r."
 
 def build_photo_tips_markup(lang: str = "tr") -> InlineKeyboardMarkup:
-    rows = []
-    if MINIAPP_URL:
-        rows.append([InlineKeyboardButton(text="Open website" if lang == "en" else "Web sitesini a?", web_app=WebAppInfo(url=MINIAPP_URL))])
-    rows.append([InlineKeyboardButton(text="Buy with Telegram Stars" if lang == "en" else "Telegram Stars ile ?deme", callback_data="menu:vip")])
+    rows = [[InlineKeyboardButton(text="Buy with Telegram Stars" if lang == "en" else "Telegram Stars ile ?deme", callback_data="menu:vip")]]
     return InlineKeyboardMarkup(rows)
 
 def build_main_inline_markup(lang: str = "tr") -> InlineKeyboardMarkup:
-    rows = []
-    if MINIAPP_URL:
-        rows.append([InlineKeyboardButton(text="Open website" if lang == "en" else "Web sitesini a?", web_app=WebAppInfo(url=MINIAPP_URL))])
-    rows.append([InlineKeyboardButton(text="Buy with Telegram Stars" if lang == "en" else "Telegram Stars ile ?deme", callback_data="menu:vip")])
+    rows = [[InlineKeyboardButton(text="Buy with Telegram Stars" if lang == "en" else "Telegram Stars ile ?deme", callback_data="menu:vip")]]
     return InlineKeyboardMarkup(rows)
 
 def _terms_intro_text(lang: str = "tr") -> str:
@@ -2055,54 +2059,107 @@ async def send_main_menu(message: Any, settings: Settings, *, chat_user: User | 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     args = list(getattr(context, "args", None) or [])
-    if args and (args[0] or "").strip().lower() == "buy":
-        await buy_command(update, context)
+    if args and (args[0] or "").strip().lower().startswith("vip_"):
+        await send_vip_invoice_from_start(update, context, (args[0] or "").strip().lower()[4:])
         return
-    if args and (args[0] or "").strip().lower().startswith("plan_"):
-        plan_id = (args[0] or "").strip().lower()[5:]
-        await send_plan_invoice_from_start(update, context, plan_id)
-        return
-
-    referrer_id = _parse_referrer_id_from_start_args(args)
-    user = update.effective_user
-    if user and referrer_id:
-        await _try_referral_reward_on_start(
-            context,
-            new_user_id=int(user.id),
-            referrer_id=int(referrer_id),
-        )
-
     lang = _lang_from_update(update)
-    if user and _is_mandatory_channel_enabled() and not _is_admin_user(user.id, user.username):
-        if not await _user_has_mandatory_channel_access(context.bot, user):
-            await update.effective_message.reply_text(
-                (
-                    "🔒 To use this bot, you must first <b>join our channel</b>.\n\n"
-                    "1) Tap <b>Join channel</b> below.\n"
-                    "2) Then tap <b>I joined, verify</b>."
-                )
-                if lang == "en"
-                else "🔒 Bu botu kullanmak için önce <b>kanalımıza katılmanız</b> gerekiyor.\n\n"
-                "1) Aşağıdan <b>Kanala katıl</b> ile kanala girin.\n"
-                "2) Sonra <b>Katıldım, doğrula</b> butonuna basın.",
-                parse_mode="HTML",
-                reply_markup=build_mandatory_channel_markup(lang),
-                disable_web_page_preview=True,
-            )
-            return
-
-    db = _load_users_db()
-    u = _get_user(db, int(user.id)) if user else None
-    if u and _grant_starter_trial_if_needed(u):
-        _save_users_db(db)
-    # Açılış (/start): zorunlu kanal dışında yaş/şart ekranı yok; doğrudan foto ipuçları.
-    if user and u:
-        await update.effective_message.reply_text(
-            _welcome_balance_text(u, lang),
-            parse_mode="HTML",
-            reply_markup=build_photo_tips_markup(lang),
-            disable_web_page_preview=True,
+    message = update.effective_message
+    if message:
+        await message.reply_text(
+            "Choose a credit package to pay with Telegram Stars."
+            if lang == "en"
+            else "Telegram Stars ile ?deme i?in bir kredi paketi se?in.",
+            reply_markup=build_vip_shop_markup(),
         )
+
+
+async def send_vip_invoice_from_start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    package_id: str,
+) -> None:
+    """Create the selected VIP package invoice after a website bot deep link."""
+    message = update.effective_message
+    user = update.effective_user
+    package = VIP_PACKAGES.get(package_id)
+    if not message or not user or not package:
+        if message:
+            await message.reply_text("Package not found. Please return to the website and choose a valid package.")
+        return
+
+    vip_amount, stars, title = package
+    if stars > 100_000:
+        order_id = uuid.uuid4().hex[:12]
+        part_count = (int(stars) + 99_999) // 100_000
+        db = _load_users_db()
+        meta = _users_meta(db)
+        orders = meta.setdefault("vip_split_orders", {})
+        orders[order_id] = {
+            "package_id": package_id,
+            "user_id": int(user.id),
+            "total_stars": int(stars),
+            "paid_parts": [],
+            "part_count": part_count,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        _save_users_db(db)
+        await message.reply_text(
+            f"This package costs {int(stars):,} Telegram Stars, so Telegram will process it in {part_count} payments. "
+            "The next invoice will arrive after each payment."
+        )
+        await _send_vip_split_invoice(message, context, package_id, order_id, 1)
+        return
+
+    payload = f"vip|{package_id}|{user.id}"
+    try:
+        await context.bot.send_invoice(
+            chat_id=message.chat_id,
+            title=title,
+            description=f"{vip_amount:g} VIP credits — Telegram Stars payment.",
+            payload=payload,
+            provider_token=None,
+            currency="XTR",
+            prices=[LabeledPrice(f"{int(vip_amount)} VIP credits", int(stars))],
+            start_parameter=f"vip_{package_id}"[:32],
+        )
+    except TelegramError as exc:
+        logger.warning("VIP invoice from start link failed: %s", exc)
+        await message.reply_text("Invoice could not be sent. Please try again later.")
+
+
+async def _send_vip_split_invoice(
+    message: Any,
+    context: ContextTypes.DEFAULT_TYPE,
+    package_id: str,
+    order_id: str,
+    part: int,
+) -> None:
+    package = VIP_PACKAGES.get(package_id)
+    db = _load_users_db()
+    order = _users_meta(db).get("vip_split_orders", {}).get(order_id)
+    if not package or not isinstance(order, dict):
+        await message.reply_text("Payment session expired. Please select the package again.")
+        return
+    total_stars = int(order.get("total_stars", package[1]))
+    part_count = int(order.get("part_count", 1))
+    amount = min(100_000, total_stars - (part - 1) * 100_000)
+    if part < 1 or part > part_count or amount <= 0:
+        await message.reply_text("Invalid payment part. Please select the package again.")
+        return
+    payload = f"vip_split|{package_id}|{int(order['user_id'])}|{order_id}|{part}"
+    try:
+        await context.bot.send_invoice(
+            chat_id=message.chat_id,
+            title=f"{int(package[0])} VIP Credits ({part}/{part_count})",
+            description=f"Payment part {part} of {part_count} for the {int(package[0])} VIP Credits package.",
+            payload=payload,
+            provider_token=None,
+            currency="XTR",
+            prices=[LabeledPrice(f"Part {part}/{part_count}", amount)],
+        )
+    except TelegramError as exc:
+        logger.warning("VIP split invoice send failed (part %s): %s", part, exc)
+        await message.reply_text("Could not create this payment part. Please try again later.")
 
 
 async def send_plan_invoice_from_start(
@@ -2310,8 +2367,6 @@ async def shop_vip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     query = update.callback_query
     if not query or not query.message:
         return
-    if not await _ensure_channel_access(update, context):
-        return
     lang = _lang_from_update(update)
     data = query.data or ""
     parts = data.split(":")
@@ -2411,12 +2466,13 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     lang = _lang_from_update(update)
     parsed_vip = _parse_vip_invoice_payload(q.invoice_payload)
+    parsed_vip_split = _parse_vip_split_payload(q.invoice_payload)
     parsed_card = _parse_card_invoice_payload(q.invoice_payload)
     parsed_plan = _parse_plan_invoice_payload(q.invoice_payload)
-    if not parsed_vip and not parsed_card and not parsed_plan:
+    if not parsed_vip and not parsed_vip_split and not parsed_card and not parsed_plan:
         await q.answer(ok=False, error_message="Invalid payment." if lang == "en" else "Geçersiz ödeme.")
         return
-    uid = parsed_vip[1] if parsed_vip else (parsed_card[1] if parsed_card else parsed_plan[1])
+    uid = parsed_vip[1] if parsed_vip else (parsed_vip_split[1] if parsed_vip_split else (parsed_card[1] if parsed_card else parsed_plan[1]))
     if not q.from_user or (uid is not None and q.from_user.id != uid):
         await q.answer(ok=False, error_message="This payment does not belong to this account." if lang == "en" else "Bu ödeme bu hesaba ait değil.")
         return
@@ -2430,6 +2486,16 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             await q.answer(ok=False, error_message="Package not found." if lang == "en" else "Paket bulunamadı.")
             return
         _vip_amt, stars, _title = pkg
+    elif parsed_vip_split:
+        pkg_id, _uid, order_id, part = parsed_vip_split
+        order = _users_meta(_load_users_db()).get("vip_split_orders", {}).get(order_id)
+        if not isinstance(order, dict) or order.get("package_id") != pkg_id or int(order.get("user_id", 0)) != uid:
+            await q.answer(ok=False, error_message="Payment session expired. Please choose the package again.")
+            return
+        stars = min(100_000, int(order["total_stars"]) - (part - 1) * 100_000)
+        if part > int(order.get("part_count", 0)) or stars <= 0:
+            await q.answer(ok=False, error_message="Invalid payment part.")
+            return
     elif parsed_card:
         offer_id = parsed_card[0]
         if offer_id != "minvideo":
@@ -2455,12 +2521,13 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         return
     lang = _lang_from_update(update)
     parsed_vip = _parse_vip_invoice_payload(sp.invoice_payload)
+    parsed_vip_split = _parse_vip_split_payload(sp.invoice_payload)
     parsed_card = _parse_card_invoice_payload(sp.invoice_payload)
     parsed_plan = _parse_plan_invoice_payload(sp.invoice_payload)
-    if not parsed_vip and not parsed_card and not parsed_plan:
+    if not parsed_vip and not parsed_vip_split and not parsed_card and not parsed_plan:
         logger.warning("successful_payment: payload veya kullanıcı uyuşmuyor")
         return
-    uid = parsed_vip[1] if parsed_vip else (parsed_card[1] if parsed_card else parsed_plan[1])
+    uid = parsed_vip[1] if parsed_vip else (parsed_vip_split[1] if parsed_vip_split else (parsed_card[1] if parsed_card else parsed_plan[1]))
     if uid is not None and uid != tg_user.id:
         logger.warning("successful_payment: payload veya kullanıcı uyuşmuyor")
         return
@@ -2473,6 +2540,17 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
             logger.warning("successful_payment: bilinmeyen paket %s", pkg_id)
             return
         vip_amt, stars, _title = pkg
+    elif parsed_vip_split:
+        pkg_id, _uid, order_id, part = parsed_vip_split
+        order = _users_meta(_load_users_db()).get("vip_split_orders", {}).get(order_id)
+        if not isinstance(order, dict) or order.get("package_id") != pkg_id or int(order.get("user_id", 0)) != uid:
+            logger.warning("successful_payment: split VIP order missing")
+            return
+        stars = min(100_000, int(order["total_stars"]) - (part - 1) * 100_000)
+        if part > int(order.get("part_count", 0)) or stars <= 0:
+            logger.warning("successful_payment: invalid split VIP part")
+            return
+        vip_amt = 0.0
     elif parsed_card:
         offer_id = parsed_card[0]
         if offer_id != "minvideo":
@@ -2500,6 +2578,32 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
     seen.append(charge_id)
     if len(seen) > _PROCESSED_STAR_PAYMENTS_CAP:
         meta["star_charge_ids"] = seen[-_PROCESSED_STAR_PAYMENTS_CAP:]
+
+    if parsed_vip_split:
+        pkg_id, _uid, order_id, part = parsed_vip_split
+        orders = meta.setdefault("vip_split_orders", {})
+        order = orders.get(order_id)
+        if not isinstance(order, dict):
+            logger.warning("successful_payment: split VIP order disappeared")
+            return
+        paid_parts = order.setdefault("paid_parts", [])
+        if part not in paid_parts:
+            paid_parts.append(part)
+        part_count = int(order.get("part_count", 0))
+        if all(required in paid_parts for required in range(1, part_count + 1)):
+            package = VIP_PACKAGES[pkg_id]
+            user = _get_user(db, tg_user.id)
+            user["vip_diamonds"] = float(user.get("vip_diamonds", 0.0)) + float(package[0])
+            user["diamonds"] = float(user.get("diamonds", 0.0)) + float(package[0])
+            orders.pop(order_id, None)
+            _save_users_db(db)
+            await msg.reply_text(f"Payment complete! +{package[0]:g} VIP credits have been added to your balance.")
+            return
+        _save_users_db(db)
+        next_part = next((candidate for candidate in range(1, part_count + 1) if candidate not in paid_parts), None)
+        if next_part is not None:
+            await _send_vip_split_invoice(msg, context, pkg_id, order_id, next_part)
+        return
 
     user = _get_user(db, tg_user.id)
     if parsed_plan:
@@ -3016,106 +3120,13 @@ async def size_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def post_init(app: Application) -> None:
-    settings = app.bot_data["settings"]
-    access_client_id = os.getenv("COMFYUI_ACCESS_CLIENT_ID", "").strip()
-    access_client_secret = os.getenv("COMFYUI_ACCESS_CLIENT_SECRET", "").strip()
-    if bool(access_client_id) != bool(access_client_secret):
-        raise ValueError(
-            "Cloudflare Access icin COMFYUI_ACCESS_CLIENT_ID ve "
-            "COMFYUI_ACCESS_CLIENT_SECRET birlikte ayarlanmalidir."
-        )
-    comfyui_headers = (
-        {
-            "CF-Access-Client-Id": access_client_id,
-            "CF-Access-Client-Secret": access_client_secret,
-        }
-        if access_client_id and access_client_secret
-        else None
-    )
-    resolved_url = await detect_comfyui_url(
-        settings.comfyui_url,
-        request_headers=comfyui_headers,
-    )
-    app.bot_data["settings"] = Settings(
-        telegram_token=settings.telegram_token,
-        comfyui_url=resolved_url,
-        workflow_path=settings.workflow_path,
-        output_dir=settings.output_dir,
-        image_node_id=settings.image_node_id,
-        image_field=settings.image_field,
-        text_node_id=settings.text_node_id,
-        text_field=settings.text_field,
-        output_node_id=settings.output_node_id,
-        poll_interval_seconds=settings.poll_interval_seconds,
-    )
-    session = aiohttp.ClientSession(
-        base_url=resolved_url,
-        headers=comfyui_headers,
-        connector=aiohttp.TCPConnector(limit=100, keepalive_timeout=30)
-    )
-    app.bot_data["cloless_client"] = CloLessClient(app.bot_data["settings"], session)
-    app.bot_data["http_session"] = session
-    logger.info("Bot ComfyUI adresi: %s", resolved_url)
-    if _is_mandatory_channel_enabled() and not _mandatory_channel_target():
-        logger.warning(
-            "Kanal daveti aktif ama dogrulama hedefi yok. "
-            "MANDATORY_CHANNEL_ID (-100...) veya MANDATORY_CHANNEL_USERNAME ayarlayin."
-        )
+    # This bot only handles package invoices and payment confirmations.
     try:
-        await app.bot.set_my_commands(
-            [
-                BotCommand("start", "🚀 Başlat"),
-                BotCommand("buy", "💰 Buy VIP / VIP Satın Al"),
-                BotCommand("my", "👀 Check account / Hesabım"),
-                BotCommand("invite", "🚀 Invite friends / Davet"),
-                BotCommand("daily", "🎁 Daily gift / Günlük hediye"),
-                BotCommand("lang", "🌍 Language / Dil"),
-                BotCommand("size", "👙 Chest size / Beden ölçüsü"),
-                BotCommand("help", "❓ Help / Yardım"),
-            ]
-        )
-        logger.info("Bot komut menüsü ayarlandı.")
+        await app.bot.set_my_commands([])
+        await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
+        logger.info("Payment-only bot ready; Mini App and command menu disabled.")
     except Exception as exc:
-        logger.warning("Bot komut menüsü ayarlanamadı: %s", exc)
-    try:
-        if MINIAPP_URL:
-            await app.bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(
-                    text="HOTTOK",
-                    web_app=WebAppInfo(url=MINIAPP_URL),
-                )
-            )
-            logger.info("Sohbet menu butonu: Mini App (%s)", MINIAPP_URL)
-        else:
-            await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
-            logger.info("Sohbet menu butonu: varsayilan (MINIAPP_URL bos).")
-    except Exception as exc:
-        logger.warning("Sohbet menu butonu ayarlanamadi: %s", exc)
-    try:
-        if app.job_queue and AD_BROADCAST_INTERVAL_SECONDS > 0:
-            first_delay_seconds = max(1, min(AD_BROADCAST_INTERVAL_SECONDS, AD_BROADCAST_FIRST_DELAY_SECONDS))
-            app.job_queue.run_repeating(
-                hourly_ad_broadcast_job,
-                interval=AD_BROADCAST_INTERVAL_SECONDS,
-                first=first_delay_seconds,
-                name="hourly_ad_broadcast",
-            )
-            logger.info(
-                "Saatlik reklam zamanlayıcısı aktif: interval=%s sn, first=%s sn",
-                AD_BROADCAST_INTERVAL_SECONDS,
-                first_delay_seconds,
-            )
-        elif AD_BROADCAST_INTERVAL_SECONDS > 0:
-            global _ad_broadcast_fallback_task
-            if _ad_broadcast_fallback_task is None or _ad_broadcast_fallback_task.done():
-                _ad_broadcast_fallback_task = asyncio.create_task(_hourly_ad_broadcast_fallback_loop(app))
-                logger.info(
-                    "Saatlik reklam fallback döngüsü aktif: interval=%s sn, first=%s sn",
-                    AD_BROADCAST_INTERVAL_SECONDS,
-                    max(1, min(AD_BROADCAST_INTERVAL_SECONDS, AD_BROADCAST_FIRST_DELAY_SECONDS)),
-                )
-    except Exception as exc:
-        logger.warning("Saatlik reklam zamanlayıcısı başlatılamadı: %s", exc)
+        logger.warning("Could not clear bot menu commands: %s", exc)
 
 
 async def post_stop(app: Application) -> None:
@@ -3138,38 +3149,9 @@ def main() -> None:
     app = Application.builder().token(settings.telegram_token).post_init(post_init).post_stop(post_stop).build()
     app.bot_data["settings"] = settings
     app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CallbackQueryHandler(verify_channel_join_callback, pattern="^verify_channel_join$"))
-    app.add_handler(CallbackQueryHandler(age_verify_callback, pattern=r"^age:(ok|no)$"))
-    app.add_handler(CallbackQueryHandler(accept_terms_callback, pattern="^accept_terms$"))
-    app.add_handler(CallbackQueryHandler(photo_tips_ok_callback, pattern="^photo_tips_ok$"))
-    app.add_handler(CallbackQueryHandler(daily_callback, pattern="^daily:"))
-    app.add_handler(CallbackQueryHandler(chest_adjust_callback, pattern=r"^chest:adj:(-?[1-5])$"))
-    app.add_handler(CallbackQueryHandler(chest_noop_callback, pattern=r"^chest:noop$"))
     app.add_handler(CallbackQueryHandler(shop_vip_callback, pattern=r"^shop:vip:"))
-    app.add_handler(CallbackQueryHandler(shop_card_callback, pattern=r"^shop:card:"))
-    app.add_handler(CallbackQueryHandler(set_language_callback, pattern=r"^lang:set:"))
-    app.add_handler(CallbackQueryHandler(main_menu_callback, pattern="^menu:(vip|invite|daily|photo|prompt|chest)$"))
     app.add_handler(PreCheckoutQueryHandler(precheckout_callback))
-    app.add_handler(CommandHandler("buy", buy_command))
-    app.add_handler(CommandHandler("ad", ad_command))
-    app.add_handler(CommandHandler("my", my_command))
-    app.add_handler(CommandHandler("invite", invite_command))
-    app.add_handler(CommandHandler("daily", daily_command))
-    app.add_handler(CommandHandler("lang", lang_command))
-    app.add_handler(CommandHandler("size", size_command))
-    app.add_handler(CommandHandler("stats", stats_command))
-    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT
-            & ~filters.COMMAND
-            & filters.Regex(f"^({SECRET_PROMO_CODE}|{ONE_TIME_PROMO_CODE})$"),
-            secret_promo_callback,
-        )
-    )
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu_click))
-    app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.IMAGE | filters.Document.VIDEO, handle_photo))
     app.run_polling()
 
 

@@ -3,6 +3,8 @@
 !.env.example
 dist/
 outputs/
+archive/
+runtime-logs/
 data/*.json
 __pycache__/*
 !__pycache__/bot.cpython-312.pyc
@@ -10,6 +12,9 @@ __pycache__/*
 cf_*.txt
 .venv/
 venv/
+.bgremove-venv/
+.uv-cache/
+.models/
 .pytest_cache/
 .mypy_cache/
 .cursor/

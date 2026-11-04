@@ -4,3 +4,4 @@ fastapi
 uvicorn[standard]
 python-dotenv
 python-multipart
+PyJWT[crypto]>=2.10,<3

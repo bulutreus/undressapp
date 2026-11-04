@@ -766,7 +766,12 @@ def build_tasks_markup(channels: list[dict[str, Any]], user: dict[str, Any], lan
 
 
 def gorev_image_path() -> Path | None:
-    """Proje kökündeki görev.png / gorev.png."""
+    """Return the task promotion image from the shared assets directory."""
+    promoted_image = PROJECT_DIR / "assets" / "promotions" / "task-promotion-banner.png"
+    if promoted_image.is_file():
+        return promoted_image
+
+    # Keep support for older local copies while deployments roll forward.
     for base in (PROJECT_DIR, PROJECT_DIR / "assets"):
         if not base.is_dir():
             continue

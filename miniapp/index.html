@@ -1,306 +1,572 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-spa-shell="true">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#090909">
     <title>Undress.app</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <meta name="theme-color" content="#000000" />
-    <meta name="color-scheme" content="dark" />
-    <script>
-      try {
-        if (localStorage.getItem("undress_age_gate_accepted") === "1") {
-          document.documentElement.classList.add("age-gate-accepted");
-        }
-      } catch (_) {}
-    </script>
-    <link rel="preload" href="./favicon.webp" as="image" type="image/webp" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="icon" href="./favicon.webp" type="image/webp" />
-    <link rel="stylesheet" href="./styles.css?v=20261016-age-gate" />
-    <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script defer src="./script.js?v=20261016-static-plan-routes"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+        background: #090909;
+        font-family: system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      #app,
+      #screen {
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        background: #090909;
+      }
+
+      #screen {
+        position: relative;
+        overflow: hidden;
+      }
+
+      #screen iframe {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #090909;
+      }
+
+      @keyframes miniapp-route-enter {
+        from { opacity: 0; transform: translate3d(0, 7px, 0) scale(.997); }
+        to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+      }
+
+      @keyframes miniapp-route-exit {
+        to { opacity: 0; transform: translate3d(0, -3px, 0) scale(.999); }
+      }
+
+      #screen iframe[data-route-transition="enter"] {
+        z-index: 1;
+        animation: miniapp-route-enter 220ms cubic-bezier(.22, .68, 0, 1) both;
+      }
+
+      #screen iframe[data-route-transition="exit"] {
+        z-index: 0;
+        pointer-events: none;
+        animation: miniapp-route-exit 160ms ease both;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #screen iframe[data-route-transition] { animation: none !important; }
+      }
+
+      #loading {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #aaa;
+        font-size: 13px;
+        pointer-events: none;
+      }
+
+      #screen[data-ready="true"] #loading {
+        display: none;
+      }
+    </style>
   </head>
   <body>
-    <section id="ageGate" class="age-gate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle">
-      <div class="age-gate__panel">
-        <div class="age-gate__brand"><span class="age-gate__mark" aria-hidden="true">18+</span><span id="ageGateTitle">Undress App</span></div>
-        <ol class="age-gate__rules">
-          <li><span class="age-gate__number">1</span><span>This website contains adult content, including nudity and sexually explicit material.</span></li>
-          <li><span class="age-gate__number">2</span><span>Uploading or using images of minors or of any person without their explicit consent is strictly prohibited.</span></li>
-          <li><span class="age-gate__number">3</span><span>You bear full responsibility for any images you create on this platform.</span></li>
-          <li><span class="age-gate__number">4</span><span>By clicking “Accept,” you confirm that you are at least the age of majority in your jurisdiction, agree to the terms above, and consent to viewing sexually explicit content.</span></li>
-        </ol>
-        <p class="age-gate__notice">18+ · Age restricted · Consent required</p>
-        <button id="ageGateAccept" class="age-gate__accept" type="button">Accept</button>
-      </div>
-    </section>
-    <main class="app-shell">
-      <header class="top-banner">
-        <div class="app-brand">
-          <img class="app-brand__logo" src="./favicon.webp" alt="" width="36" height="36" decoding="async" aria-hidden="true" />
-          <span class="app-brand__name" aria-label="Undress.app">
-            <span class="app-brand__name-main">Undress</span><span class="app-brand__name-tld">.app</span>
-          </span>
-        </div>
-        <div class="header-meta">
-          <button id="langToggleBtn" class="wallet-pill lang-pill" type="button" title="Change language" aria-label="Change language">
-            <span class="lang-pill__globe" aria-hidden="true">🌐</span>
-            <span id="langCurrentLabel" class="lang-pill__code wallet-pill__value">EN</span>
-          </button>
-          <button id="openStoreBtn" class="wallet-pill" type="button" title="Open store" aria-label="Open store">
-            <span id="diamondBalance" class="wallet-pill__value" aria-live="polite">💎 --</span>
-            <span class="wallet-pill__plus" aria-hidden="true">+</span>
-          </button>
-        </div>
-        <img id="profileAvatar" class="profile-avatar" src="./pp.jpg" alt="Profile" loading="lazy" decoding="async" />
-      </header>
-
-      <section id="storeModal" class="store-modal is-hidden" aria-hidden="true">
-        <div class="store-modal__backdrop" data-store-close="1"></div>
-        <div class="store-sheet">
-          <div class="store-sheet__head">
-            <h2 data-i18n="store.title">Store</h2>
-            <button id="closeStoreBtn" class="store-close-btn" type="button" aria-label="Close store">×</button>
-          </div>
-          <p class="store-sheet__sub" data-i18n="store.sub">Purchase diamonds with Telegram Stars.</p>
-          <article class="store-feature">
-            <div class="store-feature__art" aria-hidden="true">
-              <img src="./goldbox.webp" alt="" onerror="this.onerror=null;this.src='./86.webp';" />
-            </div>
-            <div>
-              <h3 class="store-feature__title" data-i18n="store.featureTitle">Unlimited Energy</h3>
-              <p class="store-feature__text" data-i18n="store.featureText">Remove the barriers. Gain endless energy!</p>
-              <button class="store-feature__cta" type="button" data-store-buy="p50" data-i18n="store.featureCta">🚀 Let's go</button>
-            </div>
-          </article>
-          <div class="store-grid">
-            <button class="store-item" type="button" data-store-buy="p10">
-              <span class="store-item__gem"><img src="./81.webp" alt="" /></span>
-              <span class="store-item__amount">10 VIP 💎</span>
-              <span class="store-item__price">249 ⭐</span>
-            </button>
-            <button class="store-item store-item--best" type="button" data-store-buy="p50">
-              <span class="store-item__tag" data-i18n="store.bestOffer">Best Offer</span>
-              <span class="store-item__gem"><img src="./82.webp" alt="" /></span>
-              <span class="store-item__amount">50 VIP 💎</span>
-              <span class="store-item__price">1099 ⭐</span>
-            </button>
-            <button class="store-item" type="button" data-store-buy="p100">
-              <span class="store-item__gem"><img src="./83.webp" alt="" /></span>
-              <span class="store-item__amount">100 VIP 💎</span>
-              <span class="store-item__price">2099 ⭐</span>
-            </button>
-            <button class="store-item" type="button" data-store-buy="p1000">
-              <span class="store-item__gem"><img src="./84.webp" alt="" /></span>
-              <span class="store-item__amount">1000 VIP 💎</span>
-              <span class="store-item__price">19999 ⭐</span>
-            </button>
-            <button class="store-item" type="button" data-store-buy="p5000">
-              <span class="store-item__gem"><img src="./85.webp" alt="" /></span>
-              <span class="store-item__amount">5000 VIP 💎</span>
-              <span class="store-item__price">99999 ⭐</span>
-            </button>
-            <button class="store-item" type="button" data-store-buy="p10000">
-              <span class="store-item__gem"><img src="./86.webp" alt="" /></span>
-              <span class="store-item__amount">10000 VIP 💎</span>
-              <span class="store-item__price">199999 ⭐</span>
-            </button>
-          </div>
-          <p class="store-note" data-i18n="store.note">When you tap a pack, bot chat opens and payment continues with Telegram Stars.</p>
-        </div>
-      </section>
-
-      <nav class="tab-nav" aria-label="Image categories">
-        <button class="tab-btn is-active" data-tab="undress" type="button" data-i18n="tabs.undress">Undress</button>
-        <button class="tab-btn" data-tab="sex" type="button" data-i18n="tabs.sex">Sex</button>
-      </nav>
-      <section class="panel is-active" data-panel="undress">
-        <div id="undressGrid" class="card-grid"></div>
-      </section>
-      <section class="panel" data-panel="sex">
-        <div id="sexGrid" class="card-grid"></div>
-      </section>
-      <section class="panel" data-panel="video">
-        <nav class="tab-nav video-tab-nav" aria-label="Video categories">
-          <button class="tab-btn video-tab-btn is-active" data-video-tab="presets" type="button" data-i18n="tabs.videoPresets">Presets</button>
-          <button class="tab-btn video-tab-btn" data-video-tab="custom" type="button" data-i18n="tabs.videoCustom">Custom Prompt</button>
-        </nav>
-        <div id="videoPresetsGrid" class="card-grid video-grid is-active"></div>
-        <div id="videoCustomPanel" class="video-grid video-custom-panel"></div>
-      </section>
-      <section class="panel" data-panel="gallery">
-        <article class="upload-card">
-          <h3 data-i18n="gallery.title">Your Gallery</h3>
-          <p id="galleryEmptyText" class="upload-help" data-i18n="gallery.empty">No generated images yet.</p>
-          <div id="galleryGrid" class="card-grid gallery-grid"></div>
-        </article>
-      </section>
-
-      <section class="panel upload-panel" data-panel="upload">
-        <div id="generationLoadingOverlay" class="gen-loading is-hidden" aria-hidden="true" aria-live="polite">
-          <div class="gen-loading__backdrop" aria-hidden="true">
-            <img id="genLoadingBg" class="gen-loading__bg-img is-hidden" alt="" />
-            <div class="gen-loading__bg-shade"></div>
-            <div class="gen-loading__bg-glow"></div>
-          </div>
-          <div class="gen-loading__content">
-            <div class="gen-loading__visual" aria-hidden="true">
-              <div class="gen-loading__orbit">
-                <span class="gen-loading__orbit-dot gen-loading__orbit-dot--1"></span>
-                <span class="gen-loading__orbit-dot gen-loading__orbit-dot--2"></span>
-                <span class="gen-loading__orbit-dot gen-loading__orbit-dot--3"></span>
-              </div>
-              <div class="gen-loading__core">
-                <img class="gen-loading__logo" src="./favicon.webp" alt="" width="44" height="44" decoding="async" aria-hidden="true" />
-              </div>
-            </div>
-            <div class="gen-loading__card">
-              <p id="genLoadingTitle" class="gen-loading__title" data-i18n="loading.title">Creating…</p>
-              <p id="genLoadingSub" class="gen-loading__sub" data-i18n="loading.sub">Your image is being generated. Please wait.</p>
-              <div class="gen-loading__bar" aria-hidden="true"><span class="gen-loading__bar-fill"></span></div>
-              <div class="gen-loading__dots" aria-hidden="true"><span></span><span></span><span></span></div>
-            </div>
-          </div>
-        </div>
-        <header class="upload-header">
-          <button id="uploadBackBtn" class="upload-back-btn" type="button" aria-label="Back">←</button>
-          <div class="upload-header__info">
-            <h2 id="uploadStyleTitle" class="upload-header__title" data-i18n="upload.styleTitle">Style</h2>
-            <p id="uploadStyleCost" class="upload-header__cost">💎 1</p>
-          </div>
-        </header>
-        <article class="upload-card upload-card--compact">
-          <div id="selectedCardPreview" class="selected-card-preview selected-card-preview--compact"></div>
-        </article>
-        <article class="upload-card" id="yourPhotoCard">
-          <h3 id="yourPhotoTitle" data-i18n="upload.yourPhoto">Your photo</h3>
-          <label class="photo-dropzone" for="sourcePhotoInput" id="photoDropzone">
-            <div class="photo-dropzone__placeholder" id="photoDropzonePlaceholder">
-              <span class="photo-dropzone__icon" aria-hidden="true">📷</span>
-              <p class="photo-dropzone__text" data-i18n="upload.dropText">Tap to select a photo</p>
-              <p class="photo-dropzone__hint" data-i18n="upload.dropHint">Clear, front-facing photos work best</p>
-            </div>
-            <img id="sourcePhotoPreview" class="photo-dropzone__preview is-hidden" alt="Selected photo" />
-          </label>
-          <div id="photoCompareWrap" class="photo-compare is-hidden" aria-hidden="true">
-            <div id="photoCompareFrame" class="photo-compare__frame">
-              <span class="photo-compare__corner photo-compare__corner--tl" aria-hidden="true"></span>
-              <span class="photo-compare__corner photo-compare__corner--tr" aria-hidden="true"></span>
-              <span class="photo-compare__corner photo-compare__corner--bl" aria-hidden="true"></span>
-              <span class="photo-compare__corner photo-compare__corner--br" aria-hidden="true"></span>
-              <img id="photoCompareAfter" class="photo-compare__layer photo-compare__after" alt="After" />
-              <div id="photoCompareBeforeWrap" class="photo-compare__before-wrap">
-                <img id="photoCompareBefore" class="photo-compare__layer photo-compare__before" alt="Before" />
-              </div>
-              <span class="photo-compare__tag photo-compare__tag--before" data-i18n="upload.before">Before</span>
-              <span class="photo-compare__tag photo-compare__tag--after" data-i18n="upload.after">After</span>
-              <div
-                id="photoCompareHandle"
-                class="photo-compare__handle"
-                role="slider"
-                aria-label="Compare before and after"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow="50"
-                tabindex="0"
-              >
-                <span class="photo-compare__line" aria-hidden="true"></span>
-                <span class="photo-compare__knob" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 7L4 12L8 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M16 7L20 12L16 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </span>
-              </div>
-            </div>
-            <p class="photo-compare__hint" data-i18n="upload.compareHint">Drag the slider to compare</p>
-          </div>
-          <input id="sourcePhotoInput" class="upload-input upload-input--hidden" type="file" accept="image/*" />
-        </article>
-        <article class="upload-card upload-card--result" id="resultCard">
-          <h3 data-i18n="upload.resultTitle">Result</h3>
-          <div id="resultEmptyState" class="result-empty">
-            <span class="result-empty__icon" aria-hidden="true">✨</span>
-            <p data-i18n="upload.resultEmpty">Your result will appear here after generation</p>
-          </div>
-          <div id="resultMediaWrap" class="result-media is-hidden">
-            <div id="resultVideoWrap" class="result-video-wrap is-hidden">
-              <video id="comfyResultVideo" class="comfy-result-video" controls playsinline></video>
-            </div>
-            <img id="comfyResultImage" class="comfy-result-image is-hidden" alt="Generated output" />
-            <div class="result-actions">
-              <button type="button" id="resultDownloadBtn" class="result-action-btn" data-i18n="upload.download">Download</button>
-              <button type="button" id="resultNewBtn" class="result-action-btn result-action-btn--secondary" data-i18n="upload.generateAgain">Generate again</button>
-            </div>
-          </div>
-        </article>
-        <div class="upload-sticky-cta">
-          <button id="sendToComfyBtn" class="continue-btn upload-run-btn" type="button" data-i18n="upload.generate">Generate</button>
-          <p id="comfyStatusText" class="comfy-status" aria-live="polite"></p>
-        </div>
-      </section>
-      <footer class="bottom-nav" role="navigation" aria-label="Main menu">
-        <button type="button" class="bottom-item" data-view="video">
-          <span class="bottom-item__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3.5" y="6" width="12.5" height="12" rx="3.2" stroke="currentColor" stroke-width="1.7" />
-              <path d="M16.5 10.1L20.5 7.8V16.2L16.5 13.9V10.1Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
-              <circle cx="9.8" cy="12" r="2" fill="currentColor" />
-            </svg>
-          </span>
-          <span class="bottom-item__label" data-i18n="nav.video">Video</span>
-        </button>
-        <button type="button" class="bottom-item is-active" data-view="image">
-          <span class="bottom-item__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3.5" y="4.5" width="17" height="15" rx="3.2" stroke="currentColor" stroke-width="1.7" />
-              <circle cx="8.5" cy="9.2" r="1.3" fill="currentColor" />
-              <path d="M5.8 16.2L10.1 11.9C10.5 11.5 11.1 11.5 11.5 11.9L13.7 14.1L15.2 12.6C15.6 12.2 16.2 12.2 16.6 12.6L18.2 14.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </span>
-          <span class="bottom-item__label" data-i18n="nav.image">Image</span>
-        </button>
-        <button type="button" class="bottom-item" data-view="gallery">
-          <span class="bottom-item__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9.2 6.2H5.4V10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M14.8 17.8H18.6V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M18.6 10V6.2H14.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M5.4 14V17.8H9.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M8.3 8.3L15.7 15.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-              <path d="M15.7 8.3L8.3 15.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-            </svg>
-          </span>
-          <span class="bottom-item__label" data-i18n="nav.gallery">Gallery</span>
-        </button>
-      </footer>
-    </main>
+    <script id="miniapp-page-manifest" type="application/json">{"account.html":"ffc067cc3b94d3c9690a39b9ecad5d0e746587c127a97bee59c22a8c92e9d235","aml-policy.html":"ac854e6e455e79ac348f1b56c071dd2adb4aebf772e08b918961dab2a431ac3d","blog.html":"d13ca9291609bc569ee758cc0fa85ffa1d2b8d34316e5a1f2af9a762f05bf3a1","complaint.html":"afa673d887297ff767e416aa5346fca310b1485d416241c8120bed3b39f78390","content-removal.html":"59b190ab83d2e82ce70f742a618595881947c939b8ee1ff91b86374ad2f2f4c0","continue.html":"0248687d9e7f19274b03c3dc62c6b7ac3c4709dee632f3981d8f37c583acd224","creator.html":"e35ead90042d31c8aef48d9a97cf3fcf75b9be96ebfbfbf4804d2b2da5c810ee","crypto.html":"f33ff7b08d5c283f040173e90adbcf11bb7b9cb40743ac6b5be43eef40b0831f","duo.html":"c48899ff79f0da24a1e0e5136299eb7e2a71b61f00b7274c51187a2c2944429f","Explore.html":"a1a1da87e1a44787d4087cdaa55193d51eb5a3756e8f1aeb9fe6a9930c9d5f44","FaceSwap.html":"9c2c86702fa2129c6b9dfd55a947367fbba9b067f7d9ff3d908e1d58183b095a","Games.html":"a95d7de6fc5d9552cce3f373f52a34075037e890ee4e40a9037c57f0c3c7be58","Image.html":"28a58ffe650b7cb71502a4dea3ca98b487924b7dd32c5d2851fd8a01fe418abf","login.html":"db90f74245460cb4f3b274bef66832c91b2113415080df2c7759e413e5d71f4b","new model training.html":"de70f1fa5e20249538dfe77ed91d79f232bff29fffe2ed4010574ecab2745e63","Olu\u015fturduklar\u0131m \u2013 AI Olu\u015fturma Ge\u00e7mi\u015fin _ Undress AI.html":"156a86e53be857f5e2f552fdb71e639154c5c6611a10b37c331641065b803db3","online-safety.html":"4469551c15dfd97adec1e1435fa1a9f02c396a0915ce518693767383fbc09f93","partners.html":"00705461d5dc2bf429fe6ee98f13e5a2a27c19851c8d5f7d946d296fb471e304","policy.html":"909ac4dfd87299520cdb090c957f585d8fda02085ac4c4653461945413fbe0af","presets.html":"35ef4f2ee7bb04cf4cd361e9fdf23172b074322e0763dfe1610101d13442dd84","privacy.html":"0eebc80c36f168b9092d8424c6701b6586968969b63cdbc786964556a64171fb","pro.html":"a01471480b06ac627f180bc81113fca190b08e127b2fd480221cba126ebcaf44","quitfitswap.html":"bb60428f62e592adfd78ddd37130afc487ea841d22d9de6b65febb28786c8a36","rewards.html":"11f2d5b8e0251d46bb0b811d1bbe11215df6fa601255ae0148c8558a11b5969d","root-creator.html":"be08aafe1434c62d62b5ec4095c0439c00c903f91d14898e25c7bf76a5a58c72","root-pro.html":"b7f705a09bf939ff113ab265bdf729c0e6220e5f7549de074357b24eddccd0d9","sex.html":"658e76dfe435d30851aeaf51819fa080bf500136b4ff133e1a9d1efb36afc0b5","task.html":"6cb45fb8c8cbf8d2e4a21e0da8a0973f426948512d7eb2a680c1e02699e544ce","terms.html":"1d79234378a5983dca16fc6bf2439ca39528138f22704b5e8d9905408d1eafd9","textto\u0131mage.html":"eaedd27bf6122d164d0bdc6c0ddc036afa76ba0c4c59f03f00f1a36c023880b6","tida-policy.html":"65ad227b7704590fd18877ecf83bda33c0a5ddbf8b71836b93218a5aa403dee2","Undress AI - \u00dcCRETS\u0130Z Deepnude Olu\u015fturun _ AI Undress App.html":"352089e14f4d70864ad60b6892d8b200ddcc0c0bfd226c1b75f51ff8200733de","Undress App - Create Deepnude Images for FREE _ AI Undress App.html":"b141744dc41c1824b4cd13cfe10cacb58f6f6cc23c4e17c364f5a9ff4771e74e","Undress Foto\u011fraf ve Video D\u00fczenleyici \u2014 Y\u00fckleyin ve AI Undressing Olu\u015fturun.html":"d41db480423a277349fe1fb18ab1e8619f3fabd45ed1a8cff2f1cb3202e78439","usc-2257-exemption.html":"9496ed5c052718fba163188475d6f73e400db610fbaba4eebf85c103959a5fad","usdt.html":"49b9981de2573ac62e0940a391d867d7a8ced2eabf3ae42704d9a2867928ac62","video.html":"da8d31e4075a19eee03a4fee693c052817f40563eb6452a0cdae416c0dd1b928","videocustom.html":"ef9e9d4da68d46c3ed3613a977e747f3ced0f044d805bd0b861e2150865b1658","videotalking.html":"b3b55d6bac6233bed529ce08a4d3b55ba906c458f689f68ead89f420572784d2"}</script>
+    <div id="app">
+      <main id="screen" aria-busy="true">
+        <div id="loading" role="status">Loading…</div>
+      </main>
+    </div>
     <script>
       (function () {
-        function openPlanFromStartParam() {
-          var params = new URLSearchParams(window.location.search);
-          var startParam = params.get("tgWebAppStartParam") ||
-            (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) || "";
-          var match = /^pay_(pro|creator)_(monthly|yearly)$/.exec(startParam);
-          if (!match) return;
+        "use strict";
+
+        var screen = document.getElementById("screen");
+        var loading = document.getElementById("loading");
+        var pageManifest = JSON.parse(document.getElementById("miniapp-page-manifest").textContent);
+        var pageContentCache = Object.create(null);
+        var fileByPath = Object.create(null);
+        var fileByName = Object.create(null);
+        var activeFrame = null;
+        var pendingFrame = null;
+        var currentFile = "";
+        var currentSearch = "";
+        var currentHash = "";
+        var planReturnUrl = new URL("/Image.html", window.location.origin);
+
+        Object.keys(pageManifest).forEach(function (file) {
+          fileByPath[("/" + file).toLowerCase()] = file;
+          fileByName[file.toLowerCase()] = file;
+        });
+
+        function safeDecode(value) {
           try {
-            var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
-            if (initData) sessionStorage.setItem("undress_pending_payment_init_data", initData);
-          } catch (_) {}
-          var destination = "./continue.html?plan=" + encodeURIComponent(match[1]) +
-            "&billing=" + encodeURIComponent(match[2]) + "&payment=telegram";
-          window.location.replace(destination);
+            return decodeURIComponent(value);
+          } catch (error) {
+            return value;
+          }
         }
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", openPlanFromStartParam, { once: true });
-        } else {
-          openPlanFromStartParam();
+
+        function fileForEdit(url) {
+          var category = (url.searchParams.get("category") || "").toLowerCase();
+          var mode = (url.searchParams.get("mode") || "").toLowerCase();
+
+          if (category === "face-swap") return "FaceSwap.html";
+          if (category === "video" && mode === "talking") return "videotalking.html";
+          if (category === "video" && mode === "custom") return "videocustom.html";
+          if (category === "video") return "presets.html";
+          if (category === "image" && mode === "sex") return "sex.html";
+          if (category === "image" && mode === "duo") return "duo.html";
+          return "Image.html";
         }
+
+        function resolveRoute(url) {
+          var path = safeDecode(url.pathname);
+          var lowerPath = path.toLowerCase();
+          var file = null;
+
+          if (lowerPath.indexOf("/_legacy/") === 0) {
+            path = path.slice("/_legacy/".length - 1);
+            lowerPath = path.toLowerCase();
+          }
+
+          if (lowerPath === "/" || lowerPath === "/index.html" || lowerPath === "/miniapp.html") {
+            file = "Image.html";
+          } else if (lowerPath === "/pro") {
+            file = "root-pro.html";
+          } else if (lowerPath === "/creator") {
+            file = "root-creator.html";
+          } else if (lowerPath === "/login") {
+            file = "login.html";
+          } else if (lowerPath === "/account") {
+            file = "account.html";
+          } else if (lowerPath === "/plans/pro" || lowerPath === "/plans/pro/" ||
+              lowerPath === "/plans/pro/index.html") {
+            file = "pro.html";
+          } else if (lowerPath === "/plans/creator" || lowerPath === "/plans/creator/" ||
+              lowerPath === "/plans/creator/index.html") {
+            file = "creator.html";
+          } else if (lowerPath === "/edit" || lowerPath === "/tr/edit") {
+            file = fileForEdit(url);
+          } else if (lowerPath === "/explore") {
+            file = "Explore.html";
+          } else if (lowerPath === "/games") {
+            file = "Games.html";
+          } else {
+            file = fileByPath[lowerPath] || fileByName[path.split("/").pop().toLowerCase()] || null;
+          }
+
+          return file ? { file: file, url: url } : null;
+        }
+
+        function publicUrlForFrame(frameUrl) {
+          if (frameUrl.origin !== window.location.origin) return frameUrl;
+
+          var path = safeDecode(frameUrl.pathname);
+          if (path.toLowerCase().indexOf("/_legacy/") === 0) {
+            path = "/" + path.slice("/_legacy/".length);
+          }
+
+          var url = new URL(path + frameUrl.search + frameUrl.hash, window.location.origin);
+          var route = resolveRoute(url);
+          if (!route) return url;
+
+          if (path.toLowerCase() === "/edit" || path.toLowerCase() === "/tr/edit" ||
+              path.toLowerCase() === "/explore" || path.toLowerCase() === "/games") {
+            return url;
+          }
+
+          return new URL("/" + encodeURI(route.file) + frameUrl.search + frameUrl.hash, window.location.origin);
+        }
+
+        function readEmbeddedPage(file) {
+          if (pageContentCache[file]) return Promise.resolve(pageContentCache[file]);
+
+          var version = pageManifest[file];
+          if (!version) return Promise.reject(new Error("Page is missing from the miniapp manifest: " + file));
+
+          return fetch("/__miniapp/pages/" + encodeURIComponent(file) + "/" + version, {
+            credentials: "omit"
+          }).then(function (response) {
+            if (!response.ok) throw new Error("Page request failed (" + response.status + "): " + file);
+            return response.text();
+          }).then(function (contents) {
+            pageContentCache[file] = contents;
+            return contents;
+          });
+        }
+
+        function pageDocumentForRoute(route) {
+          var pageName = route.file;
+          if (pageName === "root-pro.html" || pageName === "pro.html") pageName = "creator.html";
+          if (pageName === "root-creator.html") pageName = "creator.html";
+
+          var baseHref = pageName.toLowerCase() === "login.html"
+            ? "/"
+            : "/_legacy/" + encodeURI(pageName);
+
+          return readEmbeddedPage(pageName).then(function (source) {
+            var bridge = "<scr" + "ipt>(function(){"
+              + "if(window.parent===window)return;"
+              + "try{if(!window.Telegram&&window.parent.Telegram)window.Telegram=window.parent.Telegram;}catch(error){console.error(error);}"
+              + "var router;try{router=window.parent.__miniappRouter;}catch(error){console.error(error);return;}"
+              + "if(!router)return;"
+              + (pageName === "creator.html"
+                ? "var creatorPushState=window.history.pushState.bind(window.history);"
+                  + "window.history.pushState=function(state,title,url){"
+                  + "if(url!==undefined&&window.location.protocol==='about:'){"
+                  + "var planUrl;try{planUrl=new URL(url,document.baseURI);}catch(error){console.warn('Invalid plan address.',error);}"
+                  + "if(planUrl&&planUrl.origin===window.parent.location.origin&&(planUrl.pathname==='/plans/pro/'||planUrl.pathname==='/plans/creator/')){"
+                  + "var address=planUrl.pathname+planUrl.search+planUrl.hash;"
+                  + "if(window.parent.location.pathname+window.parent.location.search+window.parent.location.hash!==address){"
+                  + "var parentState=window.parent.history.state||{};"
+                  + "window.parent.history.pushState(Object.assign({},parentState,state||{},{miniapp:true}),title||'',address);"
+                  + "}"
+                  + "return creatorPushState(state,title);"
+                  + "}"
+                  + "}"
+                  + "return creatorPushState(state,title,url);"
+                  + "};"
+                : "")
+              + "function hasCardTrigger(target){"
+              + "if(target&&target.closest&&target.closest('[role=\"radiogroup\"] [role=\"radio\"]'))return false;"
+              + "var element=target&&target.closest?target.closest('[data-card], .card, .tile, .option-card, .feature-card'):null;"
+              + "if(element)return true;"
+              + "var button=target&&target.closest?target.closest('button, a[href]'):null;"
+              + "if(!button)return false;"
+              + "var className=(button.className||'').toString();"
+              + "return /card|tile|option|feature/i.test(className)||button.hasAttribute('data-card');"
+              + "}"
+              + "function ensureUploadPanel(){"
+              + "var panel=document.getElementById('miniapp-upload-panel');"
+              + "if(panel)return panel;"
+              + "var style=document.createElement('style');"
+              + "style.textContent=`#miniapp-upload-panel{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;z-index:2147483647;}#miniapp-upload-shell{position:relative;width:min(100%,560px);max-height:88vh;overflow-y:auto;background:#171718;border-radius:24px 24px 0 0;padding:36px 18px max(16px,env(safe-area-inset-bottom));color:#f5f5f5;box-shadow:0 -16px 48px rgba(0,0,0,.35);}#miniapp-upload-shell:before{content:\"\";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:88px;height:4px;border-radius:4px;background:rgba(255,255,255,.16);}#miniapp-upload-close{position:absolute;top:12px;right:14px;border:0;background:transparent;color:#aaa;font-size:24px;cursor:pointer;}#miniapp-upload-tabs{display:flex;gap:8px;padding:4px;margin:0 auto 24px;border:1px solid rgba(255,255,255,.08);border-radius:999px;max-width:450px;}.miniapp-upload-tab{flex:1;border:0;background:transparent;color:#777;padding:10px;border-radius:999px;font-weight:700;cursor:pointer;}.miniapp-upload-tab.active{background:#29292a;color:#fff;}#miniapp-upload-title{font-size:clamp(1.5rem,5vw,2rem);line-height:1.2;text-align:center;font-weight:850;margin:10px 0 8px;}#miniapp-upload-description{font-size:15px;line-height:1.6;color:#aaa;text-align:center;margin:0 auto 22px;max-width:460px;}#miniapp-upload-description b{color:#fff;font-weight:700;}#miniapp-upload-video,#miniapp-upload-preview{display:block;width:100%;height:auto;max-height:280px;object-fit:cover;border-radius:18px;background:#111;cursor:pointer;}#miniapp-upload-status{min-height:18px;margin-top:8px;text-align:center;color:#aaa;font-size:13px;}#miniapp-upload-progress{margin-top:16px;padding:14px 16px;border:1px solid rgba(255,148,22,.16);border-radius:16px;background:linear-gradient(135deg,rgba(255,142,17,.08),rgba(255,72,17,.035));}#miniapp-upload-progress[hidden],#miniapp-download[hidden]{display:none;}#miniapp-upload-progress-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:#ddd;font-size:13px;font-weight:700;}#miniapp-upload-percent{color:#ffad43;font-variant-numeric:tabular-nums;font-size:15px;}#miniapp-upload-track{height:8px;overflow:hidden;border-radius:999px;background:#303033;}#miniapp-upload-progress-fill{position:relative;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9a1d,#ff5415);box-shadow:0 0 14px rgba(255,116,0,.52);transition:width .35s ease;}#miniapp-upload-progress-fill:after{content:\"\";position:absolute;inset:0;background:linear-gradient(100deg,transparent 15%,rgba(255,255,255,.62) 50%,transparent 85%);transform:translateX(-100%);animation:miniapp-upload-shimmer 1.4s infinite;}#miniapp-upload-progress.is-complete #miniapp-upload-progress-fill:after{animation:none;transform:translateX(100%);}#miniapp-upload-balance{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);padding:14px 16px;border-radius:999px;margin-top:14px;color:#999;font-weight:700;}#miniapp-upload-balance span:last-child{padding:3px 8px;background:#383839;border-radius:999px;color:#fff;font-size:13px;}#miniapp-upload-button,#miniapp-download{display:block;width:100%;border:2px solid #ff9a1d;border-radius:999px;background:linear-gradient(90deg,#ff9a1d,#ff4b11);color:#fff;text-align:center;text-decoration:none;font:900 1rem/1.2 system-ui,sans-serif;padding:16px 18px;margin-top:18px;cursor:pointer;box-shadow:0 8px 20px rgba(255,116,0,.22);}#miniapp-upload-button:disabled{opacity:.7;cursor:wait;}#miniapp-download{border-color:rgba(255,255,255,.15);background:#29292a;box-shadow:none;}@keyframes miniapp-upload-shimmer{to{transform:translateX(100%);}}@media(max-width:600px){#miniapp-upload-shell{padding:36px 16px max(12px,env(safe-area-inset-bottom));}}`;"
+              + "document.head.appendChild(style);"
+              + "var panel=document.createElement('div');"
+              + "panel.id='miniapp-upload-panel';"
+              + "panel.setAttribute('role','dialog');"
+              + "panel.setAttribute('aria-modal','true');"
+              + "panel.innerHTML=`<div id=\"miniapp-upload-shell\"><button id=\"miniapp-upload-close\" aria-label=\"Close\" type=\"button\">×</button><div id=\"miniapp-upload-tabs\"><button class=\"miniapp-upload-tab active\" type=\"button\">Upload</button><button class=\"miniapp-upload-tab\" type=\"button\">Settings</button></div><h1 id=\"miniapp-upload-title\">Upload photo to Undress</h1><div id=\"miniapp-upload-description\">It is necessary to have <b>a relaxed pose and a minimum of clothes</b>. Submit a photo you would like to change clothes on</div><video id=\"miniapp-upload-video\" src=\"/_legacy/yukle.mp4\" autoplay loop muted playsinline preload=\"metadata\"></video><input id=\"miniapp-upload-input\" type=\"file\" accept=\"image/*\" hidden><div id=\"miniapp-upload-status\" role=\"status\" aria-live=\"polite\"></div><div id=\"miniapp-upload-progress\" hidden><div id=\"miniapp-upload-progress-head\"><span id=\"miniapp-upload-progress-label\">Preparing photo...</span><span id=\"miniapp-upload-percent\">0%</span></div><div id=\"miniapp-upload-track\"><div id=\"miniapp-upload-progress-fill\"></div></div></div><div id=\"miniapp-upload-balance\"><span>Balance</span><span>0 credits</span></div><button id=\"miniapp-upload-button\" type=\"button\">Upload</button><a id=\"miniapp-download\" hidden download>Download image</a></div>`;"
+              + "panel.addEventListener('click',function(event){if(event.target===panel||event.target.id==='miniapp-upload-close'){panel.remove();}});"
+              + "document.body.appendChild(panel);"
+              + "var fileInput=panel.querySelector('#miniapp-upload-input');"
+              + "var uploadButton=panel.querySelector('#miniapp-upload-button');"
+              + "var uploadVideo=panel.querySelector('#miniapp-upload-video');"
+              + "var uploadStatus=panel.querySelector('#miniapp-upload-status');"
+              + "var progressBox=panel.querySelector('#miniapp-upload-progress');"
+              + "var progressLabel=panel.querySelector('#miniapp-upload-progress-label');"
+              + "var progressPercent=panel.querySelector('#miniapp-upload-percent');"
+              + "var progressFill=panel.querySelector('#miniapp-upload-progress-fill');"
+              + "var downloadLink=panel.querySelector('#miniapp-download');"
+              + "var selectedImageUrl=null;"
+              + "var isGenerating=false;"
+              + "var generationComplete=false;"
+              + "function openFilePicker(){fileInput.value='';fileInput.click();}"
+              + "function errorMessage(value){"
+              + "if(typeof value==='string')return value;"
+              + "if(value&&typeof value==='object'){"
+              + "if(typeof value.detail==='string')return value.detail;"
+              + "if(typeof value.message==='string')return value.message;"
+              + "if(typeof value.error==='string')return value.error;"
+              + "try{return JSON.stringify(value);}catch(error){console.warn('Unable to format upload error.',error);}"
+              + "}"
+              + "return 'Photo upload or generation failed.';"
+              + "}"
+              + "function setProgress(value,label){"
+              + "var percent=Math.max(0,Math.min(100,Math.round(value)));"
+              + "progressBox.hidden=false;progressPercent.textContent=percent+'%';progressFill.style.width=percent+'%';"
+              + "if(label)progressLabel.textContent=label;"
+              + "progressBox.classList.toggle('is-complete',percent===100);"
+              + "}"
+              + "function generateImage(){"
+              + "var file=fileInput.files&&fileInput.files[0];"
+              + "if(!file||isGenerating)return;"
+              + "var initData='';"
+              + "try{initData=(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData)||sessionStorage.getItem('undress_telegram_login')||'';}catch(error){console.warn('Unable to read miniapp session storage.',error);}"
+              + "if(!initData){try{initData=window.parent.Telegram&&window.parent.Telegram.WebApp&&window.parent.Telegram.WebApp.initData||window.parent.sessionStorage.getItem('undress_telegram_login')||'';}catch(error){console.warn('Unable to read parent miniapp session.',error);}}"
+              + "isGenerating=true;generationComplete=false;uploadButton.disabled=true;uploadButton.textContent='Generating...';uploadStatus.textContent='';downloadLink.hidden=true;progressBox.classList.remove('is-complete');setProgress(1,'Preparing photo...');"
+              + "var formData=new FormData();"
+              + "formData.append('image',file,file.name);formData.append('init_data',initData);formData.append('media_type','image');formData.append('media_category','undress');"
+              + "var request=new XMLHttpRequest();"
+              + "var generationStartedAt=0;"
+              + "var progressTimer=0;"
+              + "function stopProgress(){if(progressTimer){window.clearInterval(progressTimer);progressTimer=0;}}"
+              + "function failGeneration(error){stopProgress();progressBox.hidden=true;progressBox.classList.remove('is-complete');progressFill.style.width='0%';progressPercent.textContent='0%';console.error('Photo upload or generation failed.',error);uploadStatus.textContent=errorMessage(error);uploadButton.textContent='Try again';}"
+              + "request.open('POST','/api/generate');request.withCredentials=true;"
+              + "request.upload.addEventListener('progress',function(event){if(event.lengthComputable){setProgress(5+Math.round(event.loaded/event.total*10),'Uploading photo...');}});"
+              + "request.upload.addEventListener('load',function(){generationStartedAt=Date.now();progressLabel.textContent='Creating your image...';progressTimer=window.setInterval(function(){var elapsed=Date.now()-generationStartedAt;var estimate=15+80*(1-Math.exp(-elapsed/30000));setProgress(Math.min(95,estimate),'Creating your image...');},300);});"
+              + "request.addEventListener('load',function(){"
+              + "var data;try{data=request.responseText?JSON.parse(request.responseText):{};}catch(error){console.warn('Generate returned a non-JSON response.',error);data={message:request.responseText};}"
+              + "if(request.status<200||request.status>=300){failGeneration(data.detail||data.message||data.error||('Request failed ('+request.status+').'));isGenerating=false;uploadButton.disabled=false;return;}"
+              + "if(data.error||data.ok===false){failGeneration(data.error||data.detail||data);isGenerating=false;uploadButton.disabled=false;return;}"
+              + "if(!data.files||!data.files.length){failGeneration('Generation finished without a result image.');isGenerating=false;uploadButton.disabled=false;return;}"
+              + "var finalResult=data.files[data.files.length-1];"
+              + "if(!finalResult||!finalResult.url){failGeneration('Generation finished without a result image.');isGenerating=false;uploadButton.disabled=false;return;}"
+              + "stopProgress();setProgress(100,'Image ready!');"
+              + "var image=document.createElement('img');image.id='miniapp-upload-preview';image.alt='Generated result';image.src=finalResult.url;"
+              + "image.addEventListener('error',function(){uploadStatus.textContent='Image was generated, but could not be displayed. Use the download button.';});"
+              + "var currentImage=panel.querySelector('#miniapp-upload-preview');if(currentImage)currentImage.replaceWith(image);else uploadVideo.replaceWith(image);"
+              + "downloadLink.href=finalResult.url;downloadLink.setAttribute('download',finalResult.name||'generated-image.png');downloadLink.hidden=false;"
+              + "generationComplete=true;uploadStatus.textContent='Generation complete.';uploadButton.textContent='Choose another photo';isGenerating=false;uploadButton.disabled=false;"
+              + "});"
+              + "request.addEventListener('error',function(){failGeneration('Could not connect to the image generation service. Please try again.');isGenerating=false;uploadButton.disabled=false;});"
+              + "request.addEventListener('abort',function(){stopProgress();isGenerating=false;uploadButton.disabled=false;uploadButton.textContent='Try again';uploadStatus.textContent='Generation was cancelled.';});"
+              + "request.send(formData);"
+              + "}"
+              + "uploadButton.addEventListener('click',function(){if(generationComplete){openFilePicker();return;}if(fileInput.files&&fileInput.files[0])generateImage();else openFilePicker();});"
+              + "uploadVideo.addEventListener('click',openFilePicker);"
+              + "fileInput.addEventListener('change',function(){"
+              + "var file=fileInput.files&&fileInput.files[0];"
+              + "if(!file)return;"
+              + "if(!file.type||file.type.indexOf('image/')!==0){uploadStatus.textContent='Please choose an image file.';fileInput.value='';return;}"
+              + "generationComplete=false;"
+              + "progressBox.hidden=true;downloadLink.hidden=true;"
+              + "if(selectedImageUrl)URL.revokeObjectURL(selectedImageUrl);"
+              + "selectedImageUrl=URL.createObjectURL(file);"
+              + "var preview=document.createElement('img');"
+              + "preview.id='miniapp-upload-preview';preview.alt='Selected photo preview';preview.src=selectedImageUrl;"
+              + "preview.addEventListener('click',openFilePicker);"
+              + "var currentPreview=panel.querySelector('#miniapp-upload-preview');if(currentPreview)currentPreview.replaceWith(preview);else uploadVideo.replaceWith(preview);"
+              + "uploadStatus.textContent=file.name+' selected. Tap Generate to continue.';"
+              + "uploadButton.textContent='Generate';uploadButton.onclick=null;"
+              + "});"
+              + "var tabs=panel.querySelectorAll('.miniapp-upload-tab');"
+              + "for(var i=0;i<tabs.length;i++){tabs[i].addEventListener('click',function(){for(var j=0;j<tabs.length;j++){tabs[j].classList.toggle('active',tabs[j]===this);}}); }"
+              + "return panel;"
+              + "}"
+              + "document.addEventListener('click',function(event){"
+              + "var closeButton=event.target&&event.target.closest?event.target.closest('button'):null;"
+              + "if(closeButton&&closeButton.querySelector('svg path[d=\"M6 18 18 6M6 6l12 12\"]')){event.preventDefault();event.stopImmediatePropagation();if(typeof router.closePlan==='function')router.closePlan();else router.navigate('/Image.html');return;}"
+              + "var trigger=event.target&&event.target.closest?event.target.closest('a[href], button, [role=\"button\"]'):null;"
+              + "if(!trigger||!hasCardTrigger(event.target))return;"
+              + "event.preventDefault();event.stopImmediatePropagation();"
+              + "ensureUploadPanel();"
+              + "},true);"
+              + "document.addEventListener('keydown',function(event){if(event.key==='Escape'){var panel=document.getElementById('miniapp-upload-panel');if(panel){panel.remove();}}});"
+              + "document.addEventListener('click',function(event){"
+              + "var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;"
+              + "if(!link||link.hasAttribute('download')||(link.target&&link.target.toLowerCase()!=='_self'))return;"
+              + "if(/^account\\b/i.test((link.textContent||'').trim())){event.preventDefault();event.stopImmediatePropagation();router.openAccount();return;}"
+              + "var target;try{target=new URL(link.href,window.location.href);}catch(error){return;}"
+              + "if(target.protocol!=='http:'&&target.protocol!=='https:')return;"
+              + "if(target.origin===window.location.origin&&target.href.split('#')[0]===window.location.href.split('#')[0])return;"
+              + "event.preventDefault();event.stopImmediatePropagation();router.navigate(target.href);"
+              + "},true);})();</scr" + "ipt>";
+            var headMatch = /<head\b[^>]*>/i.exec(source);
+            if (!headMatch) throw new Error("Page has no head element: " + pageName);
+
+            var headEnd = headMatch.index + headMatch[0].length;
+            var headContents = source.slice(headEnd);
+            var existingBase = /<base\b[^>]*>/i.exec(headContents);
+            var baseTag = '<base href="' + baseHref.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">';
+            var shellStyle = '<style id="miniapp-shell-transitions">'
+              + '@keyframes miniapp-bottom-nav-indicator-enter{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}'
+              + '@keyframes miniapp-bottom-nav-content-enter{from{opacity:.72;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}'
+              + 'footer nav[class*="max-w-[480px]"] a{transition:color 150ms ease,transform 150ms ease}'
+              + 'footer nav[class*="max-w-[480px]"] a:active{transform:scale(.985)}'
+              + 'footer nav[class*="max-w-[480px]"] a.text-orange>div[class~="absolute"][class~="inset-0"]{animation:miniapp-bottom-nav-indicator-enter 180ms cubic-bezier(.2,.75,.25,1) both}'
+              + 'footer nav[class*="max-w-[480px]"] a.text-orange>span[class~="relative"]{animation:miniapp-bottom-nav-content-enter 190ms ease-out both}'
+              + '@media(prefers-reduced-motion:reduce){footer nav[class*="max-w-[480px]"] a,footer nav[class*="max-w-[480px]"] a.text-orange>div[class~="absolute"][class~="inset-0"],footer nav[class*="max-w-[480px]"] a.text-orange>span[class~="relative"]{animation:none!important;transition:none!important}}'
+              + '#page > div[class~="container"][class~="lg:hidden"]{display:none!important}'
+              + '#page > div[class~="hidden"][class~="w-full"][class~="lg:block"] div[class~="overflow-visible"][class*="max-w-[650px]"]{display:none!important}'
+              + '</style>';
+            var cardFontStyle = (pageName === "Image.html" || pageName === "presets.html")
+              ? '<style id="miniapp-visual-card-font">#page [data-explore-feature-card] p[class~="font-inter-tight"][class~="text-[24px]"]{font-family:"Bebas Neue",sans-serif!important}</style>'
+              : '';
+            var planLayoutStyle = pageName === "creator.html"
+              ? '<style id="miniapp-plan-layout-fix">html{padding-right:0!important}</style>'
+              : '';
+            if (existingBase) {
+              var baseStart = headEnd + existingBase.index;
+              return source.slice(0, baseStart) + baseTag + bridge + shellStyle + cardFontStyle + planLayoutStyle
+                + source.slice(baseStart + existingBase[0].length);
+            }
+
+            return source.slice(0, headEnd) + baseTag + bridge + shellStyle + cardFontStyle + planLayoutStyle + source.slice(headEnd);
+          });
+        }
+
+        function syncAddress(routeUrl, replace) {
+          var next = routeUrl.pathname + routeUrl.search + routeUrl.hash;
+          var current = window.location.pathname + window.location.search + window.location.hash;
+          if (next === current) return;
+
+          if (replace) {
+            window.history.replaceState({ miniapp: true }, "", next);
+          } else {
+            window.history.pushState({ miniapp: true }, "", next);
+          }
+        }
+
+        function reportPageLoadError(route, error) {
+          console.error("Unable to load embedded page:", route.file, error);
+          screen.setAttribute("aria-busy", "false");
+          screen.dataset.ready = "false";
+          loading.textContent = "This page could not be loaded. Please reload and try again.";
+        }
+
+        function isPlanRoute(url, route) {
+          var path = url.pathname.toLowerCase();
+          var file = String(route.file || "").toLowerCase();
+          return file === "pro.html" || file === "creator.html" || file === "root-pro.html" ||
+            file === "root-creator.html" || path === "/pro" || path === "/creator" ||
+            path.indexOf("/plans/pro") === 0 || path.indexOf("/plans/creator") === 0;
+        }
+
+        function showRoute(url, historyMode) {
+          var route = resolveRoute(url);
+          if (!route) {
+            window.location.assign(url.href);
+            return;
+          }
+
+          if (route.file.toLowerCase() === "login.html") {
+            window.location.assign(url.href);
+            return;
+          }
+
+          if (!isPlanRoute(url, route)) planReturnUrl = new URL(url.href);
+
+          if (historyMode === "push") syncAddress(url, false);
+          if (historyMode === "replace") syncAddress(url, true);
+
+          if (route.file === currentFile && url.search === currentSearch && url.hash === currentHash &&
+              (pendingFrame || activeFrame)) {
+            return;
+          }
+
+          currentFile = route.file;
+          currentSearch = url.search;
+          currentHash = url.hash;
+          screen.setAttribute("aria-busy", "true");
+          screen.querySelectorAll('iframe[data-route-transition="exit"]').forEach(function (frame) {
+            frame.remove();
+          });
+
+          var nextFrame = document.createElement("iframe");
+          nextFrame.title = route.file.replace(/\.html$/i, "").replace(/[_-]/g, " ");
+          nextFrame.style.visibility = "hidden";
+          nextFrame.setAttribute("allow", "camera; microphone; clipboard-read; clipboard-write; fullscreen");
+          nextFrame.setAttribute("referrerpolicy", "same-origin");
+          var pageAssigned = false;
+          nextFrame.addEventListener("load", function () {
+            if (!pageAssigned || pendingFrame !== nextFrame) return;
+
+            var previousFrame = activeFrame;
+            activeFrame = nextFrame;
+            pendingFrame = null;
+            nextFrame.style.visibility = "visible";
+            if (previousFrame && previousFrame !== nextFrame) {
+              nextFrame.dataset.routeTransition = "enter";
+              previousFrame.dataset.routeTransition = "exit";
+              previousFrame.setAttribute("aria-hidden", "true");
+              previousFrame.setAttribute("inert", "");
+              var exitingFrame = previousFrame;
+              window.setTimeout(function () {
+                if (exitingFrame.parentNode) exitingFrame.remove();
+              }, window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 190);
+            }
+            screen.dataset.ready = "true";
+            screen.setAttribute("aria-busy", "false");
+
+            try {
+              if (nextFrame.contentDocument && nextFrame.contentDocument.title) {
+                document.title = nextFrame.contentDocument.title;
+              }
+            } catch (error) {
+              document.title = "Undress.app";
+            }
+          });
+
+          if (pendingFrame) pendingFrame.remove();
+          pendingFrame = nextFrame;
+          screen.appendChild(nextFrame);
+          pageDocumentForRoute(route).then(function (pageDocument) {
+            if (pendingFrame !== nextFrame) return;
+            pageAssigned = true;
+            nextFrame.srcdoc = pageDocument;
+          }).catch(function (error) {
+            if (pendingFrame !== nextFrame) return;
+            pendingFrame = null;
+            nextFrame.remove();
+            reportPageLoadError(route, error);
+          });
+        }
+
+        function asLocalUrl(value) {
+          var url = new URL(value, window.location.href);
+          if (url.protocol !== "http:" && url.protocol !== "https:" &&
+              url.protocol !== "mailto:" && url.protocol !== "tel:") return null;
+          var isAppHost = url.hostname === "undress.app" || url.hostname === "www.undress.app";
+
+          if (isAppHost) {
+            var localUrl = new URL(url.pathname + url.search + url.hash, window.location.origin);
+            return resolveRoute(localUrl) ? localUrl : url;
+          }
+
+          return url;
+        }
+
+        function navigateFromFrame(value) {
+          var url;
+          try {
+            url = asLocalUrl(value);
+          } catch (error) {
+            return false;
+          }
+          if (!url) return false;
+
+          var publicUrl = publicUrlForFrame(url);
+          if (resolveRoute(publicUrl)) {
+            showRoute(publicUrl, "push");
+            return true;
+          }
+
+          window.location.assign(publicUrl.href);
+          return true;
+        }
+
+        window.__miniappRouter = {
+          navigate: navigateFromFrame,
+          closePlan: function () {
+            showRoute(new URL(planReturnUrl.href), "push");
+          },
+          openAccount: function () {
+            if (activeFrame && activeFrame.contentWindow.__openAccountDialog) {
+              activeFrame.contentWindow.__openAccountDialog();
+              return;
+            }
+            showRoute(new URL("/Image.html", window.location.origin), "push");
+          }
+        };
+
+        window.addEventListener("popstate", function () {
+          showRoute(new URL(window.location.href), "none");
+        });
+
+        var initialUrl = new URL(window.location.href);
+        var initialRoute = resolveRoute(initialUrl);
+        if (!initialRoute) {
+          initialUrl = new URL("/Image.html" + initialUrl.search + initialUrl.hash, window.location.origin);
+          window.history.replaceState({ miniapp: true }, "", initialUrl.pathname + initialUrl.search + initialUrl.hash);
+        }
+        showRoute(initialUrl, "none");
       })();
     </script>
   </body>

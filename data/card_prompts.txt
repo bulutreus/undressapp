@@ -1,4 +1,4 @@
-# TEK WORKFLOW (CloLessAi.json / COMFY_WORKFLOW_PATH) — her kart icin ayri satir.
+# TEK WORKFLOW (workflows/default-workflow.json / COMFY_WORKFLOW_PATH) — her kart icin ayri satir.
 # Format: dosya_adi=tam prompt metni (ilk = sol tarafta anahtar, sag Comfy metin dugumune gider)
 # Anahtar: miniapp'teki gorsel dosya adi — or. bikini.avif veya bikini (ucu eslesir)
 # Eslesemezse sira: sekme (undress/sex) -> video ise "video" -> (opsiyonel) form prompt

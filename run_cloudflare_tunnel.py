@@ -22,7 +22,12 @@ def _cloudflared_bin() -> str:
 
 
 def _run(cmd: list[str], *, capture_urls: bool) -> int:
-    print(" ".join(cmd), flush=True)
+    display_cmd = list(cmd)
+    if "--token" in display_cmd:
+        token_index = display_cmd.index("--token") + 1
+        if token_index < len(display_cmd):
+            display_cmd[token_index] = "[REDACTED]"
+    print(" ".join(display_cmd), flush=True)
     proc = subprocess.Popen(
         cmd,
         cwd=str(ROOT),

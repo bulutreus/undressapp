@@ -6,6 +6,7 @@ import logging
 import os
 import copy
 import random
+import re
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -272,6 +273,54 @@ def _is_admin_user(user_id: int | None, username: str | None = None) -> bool:
         return True
     normalized = (username or "").strip().lstrip("@").lower()
     return bool(normalized) and normalized in ADMIN_USERNAMES
+
+
+_ACCOUNT_CREDIT_COMMAND_RE = re.compile(
+    r"^/account(?:@[a-z0-9_]+)?\s+([1-9]\d{0,19})\+([1-9]\d{0,8})\s*$",
+    re.IGNORECASE,
+)
+
+
+async def hidden_account_credit_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    message = update.effective_message
+    sender = update.effective_user
+    chat = update.effective_chat
+    if not message or not sender or not chat or chat.type != "private":
+        return
+    if not _is_admin_user(sender.id, sender.username):
+        return
+
+    match = _ACCOUNT_CREDIT_COMMAND_RE.fullmatch(message.text or "")
+    if not match:
+        return
+
+    target_id = int(match.group(1))
+    amount = int(match.group(2))
+    db = _load_users_db()
+    target_key = str(target_id)
+    target = db.get(target_key)
+    if not isinstance(target, dict):
+        await message.reply_text("No account found for that Telegram ID.")
+        return
+
+    target.setdefault("vip_diamonds", 0.0)
+    target.setdefault("trial_diamonds", 0.0)
+    target["vip_diamonds"] = float(target.get("vip_diamonds", 0.0) or 0.0) + amount
+    target["diamonds"] = _diamonds_total_from_buckets(target)
+    _save_users_db(db)
+    logger.info(
+        "Admin credit grant: admin_id=%s target_id=%s amount=%s balance=%s",
+        sender.id,
+        target_id,
+        amount,
+        target["diamonds"],
+    )
+    await message.reply_text(
+        f"Added +{amount} credits to account {target_id}. New balance: {target['diamonds']:g}."
+    )
 
 
 def daily_gift_message_html(lang: str = "tr", extra_success_line: str | None = None) -> str:
@@ -3151,6 +3200,12 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CallbackQueryHandler(shop_vip_callback, pattern=r"^shop:vip:"))
     app.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+    app.add_handler(
+        MessageHandler(
+            filters.ChatType.PRIVATE & filters.Regex(_ACCOUNT_CREDIT_COMMAND_RE),
+            hidden_account_credit_command,
+        )
+    )
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
     app.run_polling()
 

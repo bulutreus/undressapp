@@ -701,6 +701,15 @@ def build_vip_shop_markup() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+def build_plan_shop_markup(lang: str = "tr") -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for plan_id, (plan, billing, stars, _days) in PLAN_STARS_PACKAGES.items():
+        period = ("yearly" if billing == "yearly" else "monthly") if lang == "en" else ("yıllık" if billing == "yearly" else "aylık")
+        label = f"{plan.title()} · {period} · {stars:,} ⭐"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"shop:plan:{plan_id}")])
+    return InlineKeyboardMarkup(rows)
+
+
 def build_video_promo_markup(lang: str = "tr", *, offer_id: str = "", stars: int = 0) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if offer_id and stars > 0:
@@ -2142,17 +2151,22 @@ async def send_main_menu(message: Any, settings: Settings, *, chat_user: User | 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     args = list(getattr(context, "args", None) or [])
-    if args and (args[0] or "").strip().lower().startswith("vip_"):
-        await send_vip_invoice_from_start(update, context, (args[0] or "").strip().lower()[4:])
-        return
+    if args:
+        start_payload = (args[0] or "").strip().lower()
+        if start_payload.startswith("vip_"):
+            await send_vip_invoice_from_start(update, context, start_payload[4:])
+            return
+        if start_payload.startswith("plan_"):
+            await send_plan_invoice_from_start(update, context, start_payload[5:])
+            return
     lang = _lang_from_update(update)
     message = update.effective_message
     if message:
         await message.reply_text(
-            "Choose a credit package to pay with Telegram Stars."
+            "Choose a subscription plan to pay with Telegram Stars."
             if lang == "en"
-            else "Telegram Stars ile ?deme i?in bir kredi paketi se?in.",
-            reply_markup=build_vip_shop_markup(),
+            else "Telegram Stars ile odeme yapmak icin bir plan secin.",
+            reply_markup=build_plan_shop_markup(lang),
         )
 
 
@@ -2276,6 +2290,18 @@ async def send_plan_invoice_from_start(
     except TelegramError as exc:
         logger.warning("Plan invoice could not be sent (%s): %s", plan_id, exc)
         await message.reply_text("Telegram payment could not be opened. Please try again from the website.")
+
+
+async def shop_plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not query.message:
+        return
+    plan_id = (query.data or "").removeprefix("shop:plan:")
+    if plan_id not in PLAN_STARS_PACKAGES:
+        await query.answer("Plan not found." if _lang_from_update(update) == "en" else "Plan bulunamadi.", show_alert=True)
+        return
+    await query.answer()
+    await send_plan_invoice_from_start(update, context, plan_id)
 
 
 async def verify_channel_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -3258,6 +3284,7 @@ def main() -> None:
     app = Application.builder().token(settings.telegram_token).post_init(post_init).post_stop(post_stop).build()
     app.bot_data["settings"] = settings
     app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CallbackQueryHandler(shop_plan_callback, pattern=r"^shop:plan:"))
     app.add_handler(CallbackQueryHandler(shop_vip_callback, pattern=r"^shop:vip:"))
     app.add_handler(PreCheckoutQueryHandler(precheckout_callback))
     app.add_handler(

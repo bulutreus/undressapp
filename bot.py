@@ -276,7 +276,7 @@ def _is_admin_user(user_id: int | None, username: str | None = None) -> bool:
 
 
 _ACCOUNT_CREDIT_COMMAND_RE = re.compile(
-    r"^/account(?:@[a-z0-9_]+)?\s+([1-9]\d{0,19})\+([1-9]\d{0,8})\s*$",
+    r"^/(?:account(?:@[a-z0-9_]+)?\s+)?([1-9]\d{0,19})\+([1-9]\d{0,8})\s*$",
     re.IGNORECASE,
 )
 
@@ -303,7 +303,7 @@ async def hidden_account_credit_command(
     target_key = str(target_id)
     target = db.get(target_key)
     if not isinstance(target, dict):
-        await message.reply_text("No account found for that Telegram ID.")
+        await message.reply_text(f"❌ Bu Account ID için kayıt bulunamadı: {target_id}")
         return
 
     target.setdefault("vip_diamonds", 0.0)
@@ -319,7 +319,8 @@ async def hidden_account_credit_command(
         target["diamonds"],
     )
     await message.reply_text(
-        f"Added +{amount} credits to account {target_id}. New balance: {target['diamonds']:g}."
+        f"✅ {target_id} Account ID hesabına +{amount} kredi eklendi.\n"
+        f"Yeni bakiye: {target['diamonds']:g} kredi."
     )
 
 

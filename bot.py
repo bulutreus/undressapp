@@ -659,6 +659,39 @@ def _parse_plan_invoice_payload(payload: str | None) -> tuple[str, int | None] |
     return plan_id, int(uid_s) if uid_s else None
 
 
+def _parse_google_vip_invoice_payload(payload: str | None) -> tuple[str, int] | None:
+    if not payload:
+        return None
+    parts = payload.split("|")
+    if len(parts) != 3 or parts[0] != "gvip":
+        return None
+    package_id, uid_s = parts[1], parts[2]
+    if package_id not in VIP_PACKAGES or not uid_s.isdigit():
+        return None
+    return package_id, int(uid_s)
+
+
+def _parse_google_plan_invoice_payload(payload: str | None) -> tuple[str, int] | None:
+    if not payload:
+        return None
+    parts = payload.split("|")
+    if len(parts) != 3 or parts[0] != "gplan":
+        return None
+    plan_id, uid_s = parts[1], parts[2]
+    if plan_id not in PLAN_STARS_PACKAGES or not uid_s.isdigit():
+        return None
+    return plan_id, int(uid_s)
+
+
+def _is_google_payment_account(db: dict[str, Any], user_id: int) -> bool:
+    account = db.get(str(user_id))
+    return bool(
+        isinstance(account, dict)
+        and account.get("auth_provider") == "google"
+        and account.get("google_sub")
+    )
+
+
 def build_vip_shop_markup() -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for pkg_id, (vip_amt, stars, title) in VIP_PACKAGES.items():
@@ -2518,12 +2551,25 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     parsed_vip_split = _parse_vip_split_payload(q.invoice_payload)
     parsed_card = _parse_card_invoice_payload(q.invoice_payload)
     parsed_plan = _parse_plan_invoice_payload(q.invoice_payload)
-    if not parsed_vip and not parsed_vip_split and not parsed_card and not parsed_plan:
+    parsed_google_vip = _parse_google_vip_invoice_payload(q.invoice_payload)
+    parsed_google_plan = _parse_google_plan_invoice_payload(q.invoice_payload)
+    if not any((parsed_vip, parsed_vip_split, parsed_card, parsed_plan, parsed_google_vip, parsed_google_plan)):
         await q.answer(ok=False, error_message="Invalid payment." if lang == "en" else "Geçersiz ödeme.")
         return
-    uid = parsed_vip[1] if parsed_vip else (parsed_vip_split[1] if parsed_vip_split else (parsed_card[1] if parsed_card else parsed_plan[1]))
-    if not q.from_user or (uid is not None and q.from_user.id != uid):
+    uid = (
+        parsed_vip[1] if parsed_vip else
+        parsed_vip_split[1] if parsed_vip_split else
+        parsed_card[1] if parsed_card else
+        parsed_plan[1] if parsed_plan else
+        parsed_google_vip[1] if parsed_google_vip else
+        parsed_google_plan[1]
+    )
+    google_payment = bool(parsed_google_vip or parsed_google_plan)
+    if not q.from_user or (not google_payment and uid is not None and q.from_user.id != uid):
         await q.answer(ok=False, error_message="This payment does not belong to this account." if lang == "en" else "Bu ödeme bu hesaba ait değil.")
+        return
+    if google_payment and not _is_google_payment_account(_load_users_db(), int(uid)):
+        await q.answer(ok=False, error_message="Google account not found." if lang == "en" else "Google hesabı bulunamadı.")
         return
     if (q.currency or "").upper() != "XTR":
         await q.answer(ok=False, error_message="Invalid currency." if lang == "en" else "Para birimi geçersiz.")
@@ -2552,7 +2598,7 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             return
         stars = _stars_for_card_price(_min_video_card_price())
     else:
-        plan_id = parsed_plan[0]
+        plan_id = (parsed_plan or parsed_google_plan)[0]
         stars = PLAN_STARS_PACKAGES[plan_id][2]
     if int(q.total_amount) != int(stars):
         await q.answer(ok=False, error_message="Amount mismatch." if lang == "en" else "Tutar uyuşmuyor.")
@@ -2573,17 +2619,30 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
     parsed_vip_split = _parse_vip_split_payload(sp.invoice_payload)
     parsed_card = _parse_card_invoice_payload(sp.invoice_payload)
     parsed_plan = _parse_plan_invoice_payload(sp.invoice_payload)
-    if not parsed_vip and not parsed_vip_split and not parsed_card and not parsed_plan:
+    parsed_google_vip = _parse_google_vip_invoice_payload(sp.invoice_payload)
+    parsed_google_plan = _parse_google_plan_invoice_payload(sp.invoice_payload)
+    if not any((parsed_vip, parsed_vip_split, parsed_card, parsed_plan, parsed_google_vip, parsed_google_plan)):
         logger.warning("successful_payment: payload veya kullanıcı uyuşmuyor")
         return
-    uid = parsed_vip[1] if parsed_vip else (parsed_vip_split[1] if parsed_vip_split else (parsed_card[1] if parsed_card else parsed_plan[1]))
-    if uid is not None and uid != tg_user.id:
+    uid = (
+        parsed_vip[1] if parsed_vip else
+        parsed_vip_split[1] if parsed_vip_split else
+        parsed_card[1] if parsed_card else
+        parsed_plan[1] if parsed_plan else
+        parsed_google_vip[1] if parsed_google_vip else
+        parsed_google_plan[1]
+    )
+    google_payment = bool(parsed_google_vip or parsed_google_plan)
+    if not google_payment and uid is not None and uid != tg_user.id:
         logger.warning("successful_payment: payload veya kullanıcı uyuşmuyor")
+        return
+    if google_payment and not _is_google_payment_account(_load_users_db(), int(uid)):
+        logger.warning("successful_payment: Google payment account missing")
         return
     if parsed_plan:
         uid = tg_user.id
-    if parsed_vip:
-        pkg_id = parsed_vip[0]
+    if parsed_vip or parsed_google_vip:
+        pkg_id = (parsed_vip or parsed_google_vip)[0]
         pkg = VIP_PACKAGES.get(pkg_id)
         if not pkg:
             logger.warning("successful_payment: bilinmeyen paket %s", pkg_id)
@@ -2608,7 +2667,7 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         vip_amt = _min_video_card_price()
         stars = _stars_for_card_price(vip_amt)
     else:
-        plan_id = parsed_plan[0]
+        plan_id = (parsed_plan or parsed_google_plan)[0]
         _plan, _billing, stars, _days = PLAN_STARS_PACKAGES[plan_id]
     if (sp.currency or "").upper() != "XTR" or int(sp.total_amount) != int(stars):
         logger.warning("successful_payment: tutar veya para birimi uyuşmuyor")
@@ -2654,9 +2713,9 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
             await _send_vip_split_invoice(msg, context, pkg_id, order_id, next_part)
         return
 
-    user = _get_user(db, tg_user.id)
-    if parsed_plan:
-        plan_id = parsed_plan[0]
+    user = _get_user(db, int(uid))
+    if parsed_plan or parsed_google_plan:
+        plan_id = (parsed_plan or parsed_google_plan)[0]
         plan, billing, _stars, days = PLAN_STARS_PACKAGES[plan_id]
         now = datetime.now(timezone.utc)
         previous_expiry = user.get("subscription_expires_at")
@@ -2678,8 +2737,8 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         user["diamonds"] = float(user.get("diamonds", 0.0)) + vip_amt
     _save_users_db(db)
 
-    if parsed_plan:
-        plan_id = parsed_plan[0]
+    if parsed_plan or parsed_google_plan:
+        plan_id = (parsed_plan or parsed_google_plan)[0]
         plan, billing, stars, _days = PLAN_STARS_PACKAGES[plan_id]
         await msg.reply_text(
             f"✅ {plan.title()} {billing} plan activated ({stars} ⭐)."

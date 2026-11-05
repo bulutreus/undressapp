@@ -273,6 +273,22 @@ def _auth_provider(parsed: dict) -> str:
     return str(user.get("provider") or "telegram") if isinstance(user, dict) else "telegram"
 
 
+def _authenticate_payment_request(init_data: str, request: Request, bot_token: str) -> dict | None:
+    session = validate_login_session(request.cookies.get("undress_session", ""), bot_token)
+    if session and _auth_provider(session) == "google":
+        return session
+    return _authenticate_app_request(init_data, request, bot_token)
+
+
+def _is_google_account_user(user_id: int) -> bool:
+    account = _load_users_db().get(str(user_id))
+    return bool(
+        isinstance(account, dict)
+        and account.get("auth_provider") == "google"
+        and account.get("google_sub")
+    )
+
+
 def _miniapp_bot_token(settings: WebSettings) -> str:
     return _normalize_telegram_bot_token(os.getenv("MINIAPP_BOT_TOKEN") or settings.bot_token)
 
@@ -1285,11 +1301,9 @@ def create_app() -> FastAPI:
     @app.post("/api/miniapp/vip-invoice")
     async def miniapp_vip_invoice(body: VipInvoiceBody, request: Request) -> JSONResponse:
         settings: WebSettings = app.state.settings
-        parsed = _authenticate_app_request(body.init_data, request, settings.bot_token)
+        parsed = _authenticate_payment_request(body.init_data, request, settings.bot_token)
         if not parsed:
-            raise HTTPException(status_code=401, detail="Telegram session could not be verified.")
-        if _auth_provider(parsed) == "google":
-            raise HTTPException(status_code=403, detail="Telegram Stars purchases require a Telegram account.")
+            raise HTTPException(status_code=401, detail="Sign in before purchasing credits.")
 
         package = VIP_PACKAGES.get(body.package_id.strip().lower())
         if not package:
@@ -1298,8 +1312,11 @@ def create_app() -> FastAPI:
         vip_amount, stars, _label = package
         package_id = body.package_id.strip().lower()
         user_id = int(parsed["user_id"])
+        google_account = _auth_provider(parsed) == "google"
+        if google_account and not _is_google_account_user(user_id):
+            raise HTTPException(status_code=403, detail="Google account could not be verified for payment.")
         title = f"{int(vip_amount)} VIP Credits"
-        payload = f"vip|{package_id}|{user_id}"
+        payload = f"gvip|{package_id}|{user_id}" if google_account else f"vip|{package_id}|{user_id}"
         request_body = {
             "title": title,
             "description": f"{int(vip_amount)} VIP credits package",
@@ -1323,11 +1340,9 @@ def create_app() -> FastAPI:
     @app.post("/api/miniapp/subscription-invoice")
     async def miniapp_subscription_invoice(body: SubscriptionInvoiceBody, request: Request) -> JSONResponse:
         settings: WebSettings = app.state.settings
-        parsed = _authenticate_app_request(body.init_data, request, settings.bot_token)
+        parsed = _authenticate_payment_request(body.init_data, request, settings.bot_token)
         if body.init_data.strip() and not parsed:
             raise HTTPException(status_code=401, detail="Telegram session could not be verified.")
-        if parsed and _auth_provider(parsed) == "google":
-            raise HTTPException(status_code=403, detail="Telegram Stars subscriptions require a Telegram account.")
 
         plan = body.plan.strip().lower()
         billing = body.billing.strip().lower()
@@ -1341,7 +1356,13 @@ def create_app() -> FastAPI:
         title = f"{plan.title()} Plan"
         description = f"{plan.title()} Plan, {months} mo."
         user_id = int(parsed["user_id"]) if parsed else None
-        payload = f"plan|{plan_id}|{user_id}" if user_id else f"plan|{plan_id}"
+        google_account = bool(parsed and _auth_provider(parsed) == "google")
+        if google_account and not _is_google_account_user(int(user_id)):
+            raise HTTPException(status_code=403, detail="Google account could not be verified for payment.")
+        if google_account:
+            payload = f"gplan|{plan_id}|{user_id}"
+        else:
+            payload = f"plan|{plan_id}|{user_id}" if user_id else f"plan|{plan_id}"
         api_url = f"https://api.telegram.org/bot{settings.bot_token}/createInvoiceLink"
         request_body = {
             "title": title,

@@ -799,6 +799,22 @@ def create_app() -> FastAPI:
         settings: WebSettings = app.state.settings
         return JSONResponse({"ok": True, "comfyui_url": settings.comfyui_url})
 
+    @app.get("/api/prompts")
+    async def list_prompts() -> JSONResponse:
+        prompt_files = _load_prompt_files()
+        prompts = []
+        for key in sorted(prompt_files):
+            category, _, name = key.partition("/")
+            if category not in {"undress", "sex"} or name.endswith(".txt"):
+                continue
+            prompts.append(
+                {
+                    "key": key,
+                    "label": f"{category.title()} · {name.replace('-', ' ').title()}",
+                }
+            )
+        return JSONResponse({"prompts": prompts})
+
     @app.get("/__miniapp/pages/{page_name}/{version}", include_in_schema=False)
     async def embedded_miniapp_page(page_name: str, version: str) -> FileResponse:
         await refresh_embedded_app_page_manifest()

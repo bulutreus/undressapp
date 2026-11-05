@@ -31,7 +31,7 @@ import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from jwt import PyJWKClient, PyJWKClientError
@@ -1658,7 +1658,7 @@ def create_app() -> FastAPI:
         )
 
     @app.api_route("/_legacy/{legacy_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
-    async def legacy_app_file(legacy_path: str) -> Response:
+    async def legacy_app_file(legacy_path: str, request: Request) -> Response:
         legacy_path = legacy_path.lstrip("/")
         static_roots = (
             app.state.settings.miniapp_dir.resolve(),
@@ -1685,6 +1685,56 @@ def create_app() -> FastAPI:
         if file_path.suffix.lower() != ".html":
             if not file_path.is_file():
                 raise HTTPException(status_code=404, detail="File not found.")
+            if file_path.suffix.lower() == ".mp4":
+                file_size = file_path.stat().st_size
+                headers = {
+                    "Accept-Ranges": "bytes",
+                    "Cache-Control": _legacy_asset_cache_control(file_path),
+                }
+                range_header = request.headers.get("range")
+                if range_header:
+                    match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip())
+                    if not match or (not match.group(1) and not match.group(2)):
+                        return Response(status_code=416, headers={**headers, "Content-Range": f"bytes */{file_size}"})
+
+                    if match.group(1):
+                        start = int(match.group(1))
+                        end = int(match.group(2)) if match.group(2) else file_size - 1
+                    else:
+                        suffix_length = int(match.group(2))
+                        start = max(file_size - suffix_length, 0)
+                        end = file_size - 1
+
+                    if start >= file_size or end < start:
+                        return Response(status_code=416, headers={**headers, "Content-Range": f"bytes */{file_size}"})
+
+                    end = min(end, file_size - 1)
+                    content_length = end - start + 1
+                    headers.update({
+                        "Content-Length": str(content_length),
+                        "Content-Range": f"bytes {start}-{end}/{file_size}",
+                    })
+                    if request.method == "HEAD":
+                        return Response(status_code=206, media_type="video/mp4", headers=headers)
+
+                    def iter_video_range():
+                        with file_path.open("rb") as video_file:
+                            video_file.seek(start)
+                            remaining = content_length
+                            while remaining:
+                                chunk = video_file.read(min(64 * 1024, remaining))
+                                if not chunk:
+                                    break
+                                remaining -= len(chunk)
+                                yield chunk
+
+                    return StreamingResponse(iter_video_range(), status_code=206, media_type="video/mp4", headers=headers)
+
+                if request.method == "HEAD":
+                    headers["Content-Length"] = str(file_size)
+                    return Response(status_code=200, media_type="video/mp4", headers=headers)
+                return FileResponse(file_path, media_type="video/mp4", headers=headers)
+
             return FileResponse(
                 file_path,
                 headers={"Cache-Control": _legacy_asset_cache_control(file_path)},

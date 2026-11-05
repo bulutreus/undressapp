@@ -443,12 +443,71 @@ def _load_card_prompts_file(path: Path) -> dict[str, str]:
     return out
 
 
+def _prompt_file_directories() -> tuple[Path, ...]:
+    """Return the deployed prompt directory and the legacy source-tree fallback."""
+    return (
+        PROJECT_DIR / "miniapp" / "prompts",
+        PROJECT_DIR / "assets" / "miniapp" / "prompts",
+    )
+
+
+def _load_prompt_files() -> dict[str, str]:
+    """Load category/card prompts from miniapp/prompts/{category}/{card}.txt."""
+    out: dict[str, str] = {}
+    for root in _prompt_file_directories():
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*.txt")):
+            relative = path.relative_to(root)
+            if len(relative.parts) < 2:
+                continue
+            category = relative.parts[0].strip().lower()
+            try:
+                value = path.read_text(encoding="utf-8-sig").strip()
+            except OSError:
+                logger.exception("Prompt dosyası okunamadı: %s", path)
+                continue
+            value = re.sub(r"^PROMPT\s*:\s*", "", value, count=1, flags=re.IGNORECASE).strip()
+            if not value:
+                continue
+            key = f"{category}/{path.stem.lower()}"
+            out.setdefault(key, value)
+            out.setdefault(f"{category}/{path.name.lower()}", value)
+    return out
+
+
+def _prompt_file_key_candidates(
+    card_key: str, media_category: str, media_type: str
+) -> list[str]:
+    group = "video" if (media_type or "").strip().lower() == "video" else (
+        media_category or "undress"
+    ).strip().lower()
+    group = group if group in {"undress", "sex", "video"} else "undress"
+    raw = (card_key or "").replace("\\", "/").strip().strip("/").lower()
+    parts = [part for part in raw.split("/") if part and part not in {".", ".."}]
+    if parts and parts[0] == "prompts":
+        parts = parts[1:]
+
+    candidates: list[str] = []
+    if len(parts) >= 2 and parts[0] in {"undress", "sex", "video"}:
+        name = parts[-1]
+        candidates.extend((f"{parts[0]}/{name}", f"{parts[0]}/{Path(name).stem.lower()}"))
+    if parts:
+        name = parts[-1]
+        stem = Path(name).stem.lower()
+        candidates.extend((f"{group}/{name}", f"{group}/{stem}"))
+    else:
+        candidates.extend((f"{group}/{group}.txt", f"{group}/{group}"))
+    return list(dict.fromkeys(candidates))
+
+
 def _resolve_prompt_for_generate(
     mapping: dict[str, str],
     card_key: str,
     media_category: str,
     media_type: str,
     form_prompt: str | None,
+    prompt_files: dict[str, str] | None = None,
 ) -> str | None:
     """Kart promptu + form/Telegram promptunu birlestirip tek prompt dondurur."""
     fp = (form_prompt or "").strip()
@@ -463,7 +522,13 @@ def _resolve_prompt_for_generate(
     if (media_type or "").strip().lower() == "video":
         candidates.append("video")
     card_prompt: str | None = None
+    for c in _prompt_file_key_candidates(card_key, mg, media_type):
+        if prompt_files and c in prompt_files:
+            card_prompt = prompt_files[c]
+            break
     for c in candidates:
+        if card_prompt:
+            break
         if c and c in mapping:
             card_prompt = mapping[c]
             break
@@ -1392,6 +1457,7 @@ def create_app() -> FastAPI:
 
         prompts_path = _resolve_card_prompts_path()
         card_prompts = _load_card_prompts_file(prompts_path)
+        prompt_files = _load_prompt_files()
         app.state.card_prompts = card_prompts
 
         uid = int(parsed["user_id"])
@@ -1446,6 +1512,7 @@ def create_app() -> FastAPI:
                 media_group,
                 media_kind,
                 prompt,
+                prompt_files,
             )
             logger.info(
                 "generate: user_folder=%s card_key=%r prompt_len=%s file=%s",

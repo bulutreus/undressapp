@@ -88,7 +88,7 @@
           <p>Continue with your Google account to access your profile and credit balance.</p>
         </div>
       </header>
-      <div class="login-auth"><div id="google-login" aria-label="Sign in with Google"></div><div id="telegram-browser-help" hidden role="status"><p>Google sign-in is blocked inside Telegram's built-in browser. Open this page in your browser to continue. / Google girişi Telegram'ın yerleşik tarayıcısında engelleniyor. Devam etmek için sayfayı dış tarayıcıda açın.</p><button id="open-external-browser" type="button">Open in browser / Tarayıcıda aç</button><p>If it stays in Telegram, use the menu and choose “Open in browser”. / Telegram'da kalırsa menüden “Tarayıcıda aç” seçeneğini kullanın.</p></div><p id="login-status" role="status" aria-live="polite"></p></div>
+      <div class="login-auth"><div id="google-login" aria-label="Sign in with Google"></div><div id="telegram-browser-help" role="note"><p>Opened this link in Telegram? Google sign-in may not work in its built-in browser. Open the page in your browser to continue. / Bu bağlantıyı Telegram'da mı açtınız? Google girişi Telegram'ın yerleşik tarayıcısında çalışmayabilir. Devam etmek için sayfayı tarayıcıda açın.</p><button id="open-external-browser" type="button">Open in browser / Tarayıcıda aç</button><p>If it stays in Telegram, use the menu and choose “Open in browser”. / Telegram'da kalırsa menüden “Tarayıcıda aç” seçeneğini kullanın.</p></div><p id="login-status" role="status" aria-live="polite"></p></div>
       <div class="login-legal">By continuing, you agree to our <a href="./terms.html">Terms of Service</a> and <a href="./privacy.html">Privacy Policy</a>.</div>
     </section>
   </main>
@@ -143,24 +143,23 @@
       var telegramHelp=document.getElementById('telegram-browser-help');
       var externalBrowserButton=document.getElementById('open-external-browser');
       var telegram=window.Telegram&&window.Telegram.WebApp;
-      var telegramBrowser=!!(telegram&&telegram.initData)||/Telegram/i.test(navigator.userAgent);
+      var telegramBrowser=!!(telegram&&telegram.initData)||/Telegram|TDesktop/i.test(navigator.userAgent)||!!window.TelegramWebviewProxy||!!new URLSearchParams(window.location.search).get('tgWebAppData');
       function fail(error){status.textContent=error.message||'Google sign-in is unavailable. Please try again.'}
       function nextPath(){
         var search='';try{search=window.parent.location.search}catch(error){}
         var value=new URLSearchParams(search).get('next')||'/Image.html';
         return value.charAt(0)==='/'&&value.charAt(1)!=='/'&&value.indexOf('\\')===-1?value:'/Image.html';
       }
-      if(telegramBrowser){
-        container.hidden=true;
-        telegramHelp.hidden=false;
-        externalBrowserButton.addEventListener('click',function(){
+      externalBrowserButton.addEventListener('click',function(){
           if(telegram&&typeof telegram.openLink==='function'){
             telegram.openLink(window.location.href);
             return;
           }
           var opened=window.open(window.location.href,'_blank','noopener');
           if(!opened)status.textContent='Use Telegram menu → Open in browser, then sign in there.';
-        });
+      });
+      if(telegramBrowser){
+        container.hidden=true;
         return;
       }
       function signIn(response){

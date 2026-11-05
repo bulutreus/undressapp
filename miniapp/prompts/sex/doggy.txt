@@ -1,2 +1,6 @@
-PROMPT:
+PROMPT:Change only the adult subject's body pose into a classic doggy-style position: positioned on hands and knees, facing away from the camera, with the back naturally arched and the head turned slightly to the side. Keep the posture anatomically realistic and natural.
+
+Preserve the person's original identity, face, hairstyle, body proportions, skin texture, and clothing exactly as in the uploaded photo. Adapt the existing clothing naturally to the new pose.
+
+Keep the original background, lighting, photographic style, and realistic details. Do not add other people or objects. Only change the body pose.
 

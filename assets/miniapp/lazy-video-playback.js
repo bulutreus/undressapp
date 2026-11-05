@@ -4,6 +4,7 @@
   var videos = document.querySelectorAll("video[data-lazy-autoplay]");
   if (!videos.length) return;
   var previewRequested = new WeakSet();
+  var isMobile = window.matchMedia("(max-width: 640px)").matches;
 
   function showPreviewFrame(video) {
     video.preload = "metadata";
@@ -38,12 +39,21 @@
     }
   }
 
+  if (isMobile) {
+    videos.forEach(function (video) {
+      var source = video.querySelector("source[data-mobile-src]");
+      var mobileSource = source && source.getAttribute("data-mobile-src");
+      if (!mobileSource) return;
+      source.setAttribute("src", mobileSource);
+      video.load();
+    });
+  }
+
   if (!("IntersectionObserver" in window)) {
     videos.forEach(startPlayback);
     return;
   }
 
-  var isMobile = window.matchMedia("(max-width: 640px)").matches;
   var visibility = new Map();
 
   videos.forEach(function (video) {

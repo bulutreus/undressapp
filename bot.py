@@ -1523,7 +1523,8 @@ class CloLessClient:
         }
 
         # Replace checkpoint outputs with their Cloud component equivalents.
-        for node in workflow.values():
+        for node_id in ("2", "3", "5"):
+            node = workflow.get(node_id, {})
             inputs = node.get("inputs", {})
             for name, value in list(inputs.items()):
                 if value == ["1", 0]:

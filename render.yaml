@@ -21,3 +21,5 @@ services:
         value: https://undressapp.shop
       - key: COMFYUI_URL
         sync: false
+      - key: COMFY_CLOUD_API_KEY
+        sync: false

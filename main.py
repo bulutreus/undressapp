@@ -713,6 +713,13 @@ def create_app() -> FastAPI:
             if access_client_id and access_client_secret
             else None
         )
+        if urlsplit(settings.comfyui_url).hostname == "cloud.comfy.org":
+            comfy_cloud_api_key = os.getenv("COMFY_CLOUD_API_KEY", "").strip()
+            if not comfy_cloud_api_key:
+                raise ValueError(
+                    "Comfy Cloud icin COMFY_CLOUD_API_KEY gerekli. API key'i Render ortam degiskenlerinde tanimlayin."
+                )
+            comfyui_headers = {**(comfyui_headers or {}), "X-API-Key": comfy_cloud_api_key}
         resolved_url = await detect_comfyui_url(
             settings.comfyui_url,
             request_headers=comfyui_headers,

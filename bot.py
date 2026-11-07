@@ -978,6 +978,23 @@ async def detect_comfyui_url(
     preferred_url: str,
     request_headers: dict[str, str] | None = None,
 ) -> str:
+    if urlparse(preferred_url).hostname == "cloud.comfy.org":
+        if not (request_headers or {}).get("X-API-Key"):
+            raise ValueError("Comfy Cloud icin COMFY_CLOUD_API_KEY tanimlanmali.")
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(
+            base_url=preferred_url.rstrip("/"),
+            headers=request_headers,
+            timeout=timeout,
+        ) as probe:
+            async with probe.get("/api/user") as response:
+                if response.status >= 400:
+                    raise RuntimeError(
+                        f"Comfy Cloud API dogrulanamadi (HTTP {response.status}); API key ve aboneligi kontrol edin."
+                    )
+        logger.info("Comfy Cloud API baglantisi dogrulandi.")
+        return preferred_url.rstrip("/")
+
     candidates = []
     for url in (preferred_url, "http://127.0.0.1:8002", "http://127.0.0.1:8000", "http://127.0.0.1:8188"):
         clean = (url or "").rstrip("/")
@@ -1068,10 +1085,17 @@ class CloLessClient:
     def __init__(self, settings: Settings, session: aiohttp.ClientSession) -> None:
         self.settings = settings
         self.session = session
+        self.is_comfy_cloud = urlparse(settings.comfyui_url).hostname == "cloud.comfy.org"
+        self.comfy_cloud_api_key = os.getenv("COMFY_CLOUD_API_KEY", "").strip()
+        if self.is_comfy_cloud and not self.comfy_cloud_api_key:
+            raise ValueError("Comfy Cloud icin COMFY_CLOUD_API_KEY tanimlanmali.")
         self.client_id = str(uuid.uuid4())
         self._ws_task = None
         self._ws = None
         self._futures: dict[str, asyncio.Future] = {}
+        self._completed_outputs: dict[str, dict[str, Any]] = {}
+        self._completed_prompts: set[str] = set()
+        self._execution_errors: dict[str, str] = {}
         self._workflow_cache: dict[str, Any] | None = None
         self._workflow_file_mtime_ns: int | None = None
         self._workflow_prompt_cache: dict[str, Any] | None = None
@@ -1080,7 +1104,13 @@ class CloLessClient:
         if self._ws and not self._ws.closed:
             return
 
-        ws_url = f"{self.settings.comfyui_url.replace('http', 'ws')}/ws?clientId={self.client_id}"
+        ws_scheme = "wss" if self.settings.comfyui_url.startswith("https://") else "ws"
+        ws_url = f"{self.settings.comfyui_url.replace('https://', '').replace('http://', '')}/ws?clientId={self.client_id}"
+        if self.is_comfy_cloud:
+            from urllib.parse import urlencode
+            ws_url = f"{ws_scheme}://{ws_url}&{urlencode({'token': self.comfy_cloud_api_key})}"
+        else:
+            ws_url = f"{ws_scheme}://{ws_url}"
         try:
             self._ws = await self.session.ws_connect(ws_url)
             if self._ws_task and not self._ws_task.done():
@@ -1095,11 +1125,28 @@ class CloLessClient:
             async for msg in self._ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
-                    if data.get("type") == "executing":
+                    if data.get("type") == "executing" and not self.is_comfy_cloud:
                         exec_data = data.get("data", {})
                         prompt_id = exec_data.get("prompt_id")
                         if exec_data.get("node") is None and prompt_id in self._futures:
                             self._futures[prompt_id].set_result(True)
+                    elif self.is_comfy_cloud:
+                        event_data = data.get("data", {})
+                        prompt_id = event_data.get("prompt_id")
+                        if not prompt_id:
+                            continue
+                        if data.get("type") == "executed" and event_data.get("output"):
+                            self._completed_outputs.setdefault(prompt_id, {})[str(event_data.get("node"))] = event_data["output"]
+                        elif data.get("type") == "execution_success":
+                            self._completed_prompts.add(prompt_id)
+                            future = self._futures.get(prompt_id)
+                            if future and not future.done():
+                                future.set_result(True)
+                        elif data.get("type") == "execution_error":
+                            self._execution_errors[prompt_id] = str(event_data.get("exception_message") or "Comfy Cloud workflow hatasi")
+                            future = self._futures.get(prompt_id)
+                            if future and not future.done():
+                                future.set_result(True)
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                     break
         except Exception as e:
@@ -1429,13 +1476,17 @@ class CloLessClient:
         form.add_field("image", image_bytes, filename=image_name)
         form.add_field("type", "input")
         form.add_field("overwrite", "true")
-        async with self.session.post("/upload/image", data=form) as resp:
+        endpoint = "/api/upload/image" if self.is_comfy_cloud else "/upload/image"
+        async with self.session.post(endpoint, data=form) as resp:
             resp.raise_for_status()
             return await resp.json()
 
     async def queue_prompt(self, workflow: dict[str, Any]) -> str:
-        payload = {"client_id": self.client_id, "prompt": workflow}
-        async with self.session.post("/prompt", json=payload) as resp:
+        payload = {"prompt": workflow}
+        if not self.is_comfy_cloud:
+            payload["client_id"] = self.client_id
+        endpoint = "/api/prompt" if self.is_comfy_cloud else "/prompt"
+        async with self.session.post(endpoint, json=payload) as resp:
             resp.raise_for_status()
             data = await resp.json()
             return data["prompt_id"]
@@ -1448,6 +1499,8 @@ class CloLessClient:
         await self.ensure_ws()
         loop = asyncio.get_running_loop()
         self._futures[prompt_id] = loop.create_future()
+        if self.is_comfy_cloud and (prompt_id in self._completed_prompts or prompt_id in self._execution_errors):
+            self._futures[prompt_id].set_result(True)
 
         try:
             done_ws = False
@@ -1458,6 +1511,13 @@ class CloLessClient:
 
             if not done_ws:
                 return await self.wait_for_outputs_polling(prompt_id)
+            if self.is_comfy_cloud:
+                if error := self._execution_errors.pop(prompt_id, None):
+                    raise RuntimeError(f"Comfy Cloud workflow hatasi: {error}")
+                self._completed_prompts.discard(prompt_id)
+                images = self.extract_images(self._completed_outputs.pop(prompt_id, {}))
+                if images:
+                    return images
             return await self.get_history_outputs(prompt_id)
         finally:
             self._futures.pop(prompt_id, None)
@@ -1470,11 +1530,12 @@ class CloLessClient:
 
     async def get_history_outputs(self, prompt_id: str, ignore_error: bool = False) -> list[dict[str, Any]]:
         try:
-            async with self.session.get(f"/history/{prompt_id}") as resp:
+            endpoint = f"/api/history_v2/{prompt_id}" if self.is_comfy_cloud else f"/history/{prompt_id}"
+            async with self.session.get(endpoint) as resp:
                 if resp.status != 200: return []
                 history = await resp.json()
 
-            prompt_history = history.get(prompt_id, {})
+            prompt_history = history.get(prompt_id, history if self.is_comfy_cloud else {})
             outputs = prompt_history.get("outputs", {})
             status = prompt_history.get("status", {})
 
@@ -1535,6 +1596,18 @@ class CloLessClient:
 
     async def download_image(self, meta: dict[str, Any]) -> bytes:
         params = {"filename": meta["filename"], "subfolder": meta.get("subfolder", ""), "type": meta.get("type", "output")}
+        if self.is_comfy_cloud:
+            async with self.session.get("/api/view", params=params, allow_redirects=False) as response:
+                if response.status not in (301, 302, 303, 307, 308):
+                    response.raise_for_status()
+                    raise RuntimeError(f"Comfy Cloud output indirme adresi donmedi: HTTP {response.status}")
+                signed_url = response.headers.get("Location")
+            if not signed_url:
+                raise RuntimeError("Comfy Cloud output indirme adresi eksik.")
+            async with aiohttp.ClientSession() as download_session:
+                async with download_session.get(signed_url) as download_response:
+                    download_response.raise_for_status()
+                    return await download_response.read()
         for endpoint in ("/view", "/api/view"):
             try:
                 async with self.session.get(endpoint, params=params) as resp:

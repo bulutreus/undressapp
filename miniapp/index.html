@@ -47,23 +47,23 @@
       }
 
       @keyframes miniapp-route-enter {
-        from { opacity: 0; transform: translate3d(0, 7px, 0) scale(.997); }
-        to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        from { opacity: .82; }
+        to { opacity: 1; }
       }
 
       @keyframes miniapp-route-exit {
-        to { opacity: 0; transform: translate3d(0, -3px, 0) scale(.999); }
+        to { opacity: .82; }
       }
 
       #screen iframe[data-route-transition="enter"] {
         z-index: 1;
-        animation: miniapp-route-enter 220ms cubic-bezier(.22, .68, 0, 1) both;
+        animation: miniapp-route-enter 100ms ease-out both;
       }
 
       #screen iframe[data-route-transition="exit"] {
         z-index: 0;
         pointer-events: none;
-        animation: miniapp-route-exit 160ms ease both;
+        animation: miniapp-route-exit 100ms ease both;
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -76,8 +76,14 @@
         display: grid;
         place-items: center;
         color: #aaa;
-        font-size: 13px;
         pointer-events: none;
+      }
+
+      #loading img {
+        display: block;
+        width: 60px;
+        height: 40px;
+        object-fit: contain;
       }
 
       #screen[data-ready="true"] #loading {
@@ -86,10 +92,12 @@
     </style>
   </head>
   <body>
-    <script id="miniapp-page-manifest" type="application/json">{"account.html":"ffc067cc3b94d3c9690a39b9ecad5d0e746587c127a97bee59c22a8c92e9d235","aml-policy.html":"ac854e6e455e79ac348f1b56c071dd2adb4aebf772e08b918961dab2a431ac3d","blog.html":"d13ca9291609bc569ee758cc0fa85ffa1d2b8d34316e5a1f2af9a762f05bf3a1","complaint.html":"afa673d887297ff767e416aa5346fca310b1485d416241c8120bed3b39f78390","content-removal.html":"59b190ab83d2e82ce70f742a618595881947c939b8ee1ff91b86374ad2f2f4c0","continue.html":"0248687d9e7f19274b03c3dc62c6b7ac3c4709dee632f3981d8f37c583acd224","creator.html":"e35ead90042d31c8aef48d9a97cf3fcf75b9be96ebfbfbf4804d2b2da5c810ee","crypto.html":"f33ff7b08d5c283f040173e90adbcf11bb7b9cb40743ac6b5be43eef40b0831f","duo.html":"c48899ff79f0da24a1e0e5136299eb7e2a71b61f00b7274c51187a2c2944429f","Explore.html":"a1a1da87e1a44787d4087cdaa55193d51eb5a3756e8f1aeb9fe6a9930c9d5f44","FaceSwap.html":"9c2c86702fa2129c6b9dfd55a947367fbba9b067f7d9ff3d908e1d58183b095a","Games.html":"a95d7de6fc5d9552cce3f373f52a34075037e890ee4e40a9037c57f0c3c7be58","Image.html":"28a58ffe650b7cb71502a4dea3ca98b487924b7dd32c5d2851fd8a01fe418abf","login.html":"db90f74245460cb4f3b274bef66832c91b2113415080df2c7759e413e5d71f4b","new model training.html":"de70f1fa5e20249538dfe77ed91d79f232bff29fffe2ed4010574ecab2745e63","Olu\u015fturduklar\u0131m \u2013 AI Olu\u015fturma Ge\u00e7mi\u015fin _ Undress AI.html":"156a86e53be857f5e2f552fdb71e639154c5c6611a10b37c331641065b803db3","online-safety.html":"4469551c15dfd97adec1e1435fa1a9f02c396a0915ce518693767383fbc09f93","partners.html":"00705461d5dc2bf429fe6ee98f13e5a2a27c19851c8d5f7d946d296fb471e304","policy.html":"909ac4dfd87299520cdb090c957f585d8fda02085ac4c4653461945413fbe0af","presets.html":"acc883d4f9f0c9e19e268ad6ab38df0d88d6dac2934c5b316d97dcda8a94888b","privacy.html":"0eebc80c36f168b9092d8424c6701b6586968969b63cdbc786964556a64171fb","pro.html":"a01471480b06ac627f180bc81113fca190b08e127b2fd480221cba126ebcaf44","quitfitswap.html":"bb60428f62e592adfd78ddd37130afc487ea841d22d9de6b65febb28786c8a36","rewards.html":"11f2d5b8e0251d46bb0b811d1bbe11215df6fa601255ae0148c8558a11b5969d","root-creator.html":"be08aafe1434c62d62b5ec4095c0439c00c903f91d14898e25c7bf76a5a58c72","root-pro.html":"b7f705a09bf939ff113ab265bdf729c0e6220e5f7549de074357b24eddccd0d9","sex.html":"658e76dfe435d30851aeaf51819fa080bf500136b4ff133e1a9d1efb36afc0b5","task.html":"6cb45fb8c8cbf8d2e4a21e0da8a0973f426948512d7eb2a680c1e02699e544ce","terms.html":"1d79234378a5983dca16fc6bf2439ca39528138f22704b5e8d9905408d1eafd9","textto\u0131mage.html":"eaedd27bf6122d164d0bdc6c0ddc036afa76ba0c4c59f03f00f1a36c023880b6","tida-policy.html":"65ad227b7704590fd18877ecf83bda33c0a5ddbf8b71836b93218a5aa403dee2","Undress AI - \u00dcCRETS\u0130Z Deepnude Olu\u015fturun _ AI Undress App.html":"352089e14f4d70864ad60b6892d8b200ddcc0c0bfd226c1b75f51ff8200733de","Undress App - Create Deepnude Images for FREE _ AI Undress App.html":"b141744dc41c1824b4cd13cfe10cacb58f6f6cc23c4e17c364f5a9ff4771e74e","Undress Foto\u011fraf ve Video D\u00fczenleyici \u2014 Y\u00fckleyin ve AI Undressing Olu\u015fturun.html":"d41db480423a277349fe1fb18ab1e8619f3fabd45ed1a8cff2f1cb3202e78439","usc-2257-exemption.html":"9496ed5c052718fba163188475d6f73e400db610fbaba4eebf85c103959a5fad","usdt.html":"49b9981de2573ac62e0940a391d867d7a8ced2eabf3ae42704d9a2867928ac62","video.html":"da8d31e4075a19eee03a4fee693c052817f40563eb6452a0cdae416c0dd1b928","videocustom.html":"ef9e9d4da68d46c3ed3613a977e747f3ced0f044d805bd0b861e2150865b1658","videotalking.html":"b3b55d6bac6233bed529ce08a4d3b55ba906c458f689f68ead89f420572784d2"}</script>
+    <script id="miniapp-page-manifest" type="application/json">{"account.html":"ffc067cc3b94d3c9690a39b9ecad5d0e746587c127a97bee59c22a8c92e9d235","aml-policy.html":"ac854e6e455e79ac348f1b56c071dd2adb4aebf772e08b918961dab2a431ac3d","blog.html":"d13ca9291609bc569ee758cc0fa85ffa1d2b8d34316e5a1f2af9a762f05bf3a1","complaint.html":"afa673d887297ff767e416aa5346fca310b1485d416241c8120bed3b39f78390","content-removal.html":"59b190ab83d2e82ce70f742a618595881947c939b8ee1ff91b86374ad2f2f4c0","continue.html":"6aafe66d534bd9cc55d6f8d4645085c15a028a57355f0643b436d86fc097d7c6","creator.html":"12e07541d959ddbf1d812e89de3b1138d031b2359da23c384e75d4969f57d096","crypto.html":"cb9e112dccaae0bce35aa2c93f8b82eecb196403bc4e9e4955b4816bbb58b445","duo.html":"450667b4d07583b70fc9412a6d6fc8ad282e016d9ae05760adf61b865d3b7784","Explore.html":"463a01874583f8984ea1bb8a0d0b44ab40f5d21b12780fa962db245991b2786d","FaceSwap.html":"bbeb97d2123b69decfbf7be642cd79b6a87dbd51d4ebe925cc465e24ff0e2d54","Games.html":"26824c210009c5b7a6b7a479db81dbc089134b5f470596c10eaf0ae1e6867cd7","Image.html":"9f5bcd8fd27d30282abe4e2b00e6f661cd1af65fdda2121b716e94a999775fae","login.html":"db90f74245460cb4f3b274bef66832c91b2113415080df2c7759e413e5d71f4b","new model training.html":"0691beb99fb326ffad70e15fb65287d4bdb195d1801ce7e167ed85671e061b47","Olu\u015fturduklar\u0131m \u2013 AI Olu\u015fturma Ge\u00e7mi\u015fin _ Undress AI.html":"7cacb344ac056fb4d75634008118bee62551128f9322a64a7140f057bfd47f27","online-safety.html":"4469551c15dfd97adec1e1435fa1a9f02c396a0915ce518693767383fbc09f93","partners.html":"00705461d5dc2bf429fe6ee98f13e5a2a27c19851c8d5f7d946d296fb471e304","policy.html":"909ac4dfd87299520cdb090c957f585d8fda02085ac4c4653461945413fbe0af","presets.html":"1e2a67f3c8de289841ee07c0832b7d16e33433eb43cee3924e0bdde1166db511","privacy.html":"0eebc80c36f168b9092d8424c6701b6586968969b63cdbc786964556a64171fb","pro.html":"3002d623b062d471fb1354569fefee9c7509d91611f4a1a3cff6b8598d4e17a3","quitfitswap.html":"e0eae33310c7ee2c1bb17e864646903b65905c61ce1edf736cea59e5ee08a7d8","rewards.html":"3a08a3267cefda8120f32f828b5c817e5f322fd48e37c02ce9208caa62d031cb","root-creator.html":"be08aafe1434c62d62b5ec4095c0439c00c903f91d14898e25c7bf76a5a58c72","root-pro.html":"b7f705a09bf939ff113ab265bdf729c0e6220e5f7549de074357b24eddccd0d9","sex.html":"9972b8670e8636aac4ce373f2dfefd2c6d0d69673c0cbd72c0375804027f2258","task.html":"f308da57442225c498ce3cfe36fe0ae4b1c558acff7e8ba2c1cf76ff25d70deb","terms.html":"1d79234378a5983dca16fc6bf2439ca39528138f22704b5e8d9905408d1eafd9","textto\u0131mage.html":"f880a17262165186a37adaeead8c21c2b82415746ec96ca5e81677805ba2a7af","tida-policy.html":"65ad227b7704590fd18877ecf83bda33c0a5ddbf8b71836b93218a5aa403dee2","Undress AI - \u00dcCRETS\u0130Z Deepnude Olu\u015fturun _ AI Undress App.html":"a343d8334446cc0580ed6dd7f498b43df3cad14290a19d63c89df3de6b0ee6e9","Undress App - Create Deepnude Images for FREE _ AI Undress App.html":"76457139db1fe17285d9d7851f6d7b89626a5fe35894aa2c906c3ab8555f661e","Undress Foto\u011fraf ve Video D\u00fczenleyici \u2014 Y\u00fckleyin ve AI Undressing Olu\u015fturun.html":"6efcc8eba0e37bff0ca7e6f15a7d2a680138373a222ab0697781f9a91b79580f","usc-2257-exemption.html":"9496ed5c052718fba163188475d6f73e400db610fbaba4eebf85c103959a5fad","usdt.html":"0213ac8adff0a0a1a0d63c6447d84076bb86c024a9608503ea0562e6e4ef52fc","video.html":"da8d31e4075a19eee03a4fee693c052817f40563eb6452a0cdae416c0dd1b928","videocustom.html":"5c3382af68309a5b1b2a838ea6661839666b3b70187936f0ffef33f979204194","videotalking.html":"8898c84a95f3ae05f5c738601edf4c48e0e3c2478991554ec0adaace3cbb1513"}</script>
     <div id="app">
       <main id="screen" aria-busy="true">
-        <div id="loading" role="status">Loading…</div>
+        <div id="loading" role="status" aria-label="Loading">
+          <img src="/assets/miniapp/shared/logo.svg" alt="" width="60" height="40" fetchpriority="high">
+        </div>
       </main>
     </div>
     <script>
@@ -100,6 +108,7 @@
         var loading = document.getElementById("loading");
         var pageManifest = JSON.parse(document.getElementById("miniapp-page-manifest").textContent);
         var pageContentCache = Object.create(null);
+        var pageRequests = Object.create(null);
         var fileByPath = Object.create(null);
         var fileByName = Object.create(null);
         var activeFrame = null;
@@ -196,11 +205,12 @@
 
         function readEmbeddedPage(file) {
           if (pageContentCache[file]) return Promise.resolve(pageContentCache[file]);
+          if (pageRequests[file]) return pageRequests[file];
 
           var version = pageManifest[file];
           if (!version) return Promise.reject(new Error("Page is missing from the miniapp manifest: " + file));
 
-          return fetch("/__miniapp/pages/" + encodeURIComponent(file) + "/" + version, {
+          pageRequests[file] = fetch("/__miniapp/pages/" + encodeURIComponent(file) + "/" + version, {
             credentials: "omit"
           }).then(function (response) {
             if (!response.ok) throw new Error("Page request failed (" + response.status + "): " + file);
@@ -208,7 +218,72 @@
           }).then(function (contents) {
             pageContentCache[file] = contents;
             return contents;
+          }).catch(function (error) {
+            delete pageRequests[file];
+            throw error;
           });
+          return pageRequests[file];
+        }
+
+        function prefetchRoute(value) {
+          try {
+            var url = asLocalUrl(value);
+            var route = url && resolveRoute(publicUrlForFrame(url));
+            if (route && route.file.toLowerCase() !== "login.html") {
+              var file = route.file;
+              if (file === "root-pro.html" || file === "pro.html" || file === "root-creator.html") file = "creator.html";
+              readEmbeddedPage(file).catch(function () {});
+            }
+          } catch (error) {}
+        }
+
+        function prefetchLinkedRoutes(frame) {
+          var doc;
+          try { doc = frame.contentDocument; } catch (error) { return; }
+          if (!doc) return;
+
+          // Warm all Video tabs from the first screen, before video previews
+          // begin competing for mobile bandwidth.
+          var videoFiles = ["presets.html", "videocustom.html", "videotalking.html"];
+          if (videoFiles.indexOf(currentFile) === -1) {
+            prefetchRoute(new URL("/edit?category=video", window.location.origin).href);
+          } else if (currentFile === "presets.html") {
+            prefetchRoute(new URL("/videocustom.html", window.location.origin).href);
+            prefetchRoute(new URL("/videotalking.html", window.location.origin).href);
+          }
+          if (currentFile === "presets.html") {
+            prefetchRoute(new URL("/videocustom.html", window.location.origin).href);
+            prefetchRoute(new URL("/videotalking.html", window.location.origin).href);
+          }
+
+          var candidates = [];
+          var seen = Object.create(null);
+          var primaryLinks = doc.querySelectorAll('footer nav a[href], [data-sidebar] a[href]');
+          var allLinks = doc.querySelectorAll('a[href]');
+
+          function collect(links, limit) {
+            for (var i = 0; i < links.length && candidates.length < limit; i++) {
+              var url;
+              try { url = new URL(links[i].href, window.location.origin); } catch (error) { continue; }
+              var route = resolveRoute(publicUrlForFrame(url));
+              if (!route || route.file.toLowerCase() === "login.html" || route.file === currentFile || seen[route.file]) continue;
+              seen[route.file] = true;
+              candidates.push(url.href);
+            }
+          }
+
+          collect(primaryLinks, 4);
+          collect(allLinks, 4);
+          if (!candidates.length) return;
+
+          var warm = function () {
+            candidates.forEach(prefetchRoute);
+          };
+          if (typeof window.requestIdleCallback === "function") {
+            window.requestIdleCallback(warm, { timeout: 900 });
+          } else {
+            window.setTimeout(warm, 300);
+          }
         }
 
         function pageDocumentForRoute(route) {
@@ -227,6 +302,7 @@
               + "var router;try{router=window.parent.__miniappRouter;}catch(error){console.error(error);return;}"
               + "if(!router)return;"
               + "var cardPageName=" + JSON.stringify(pageName) + ";"
+              + "document.addEventListener('DOMContentLoaded',function(){window.parent.postMessage({type:'miniapp-page-dom-ready'},'*');},{once:true});"
               + (pageName === "creator.html"
                 ? "var creatorPushState=window.history.pushState.bind(window.history);"
                   + "window.history.pushState=function(state,title,url){"
@@ -258,27 +334,31 @@
               + "card=card||trigger;var image=card&&card.querySelector?card.querySelector('img'):null;"
               + "var source=image&&(image.getAttribute('src')||image.currentSrc)||'';"
               + "var cardKey=source.split(/[?#]/)[0].split('/').pop()||'';if(!cardKey&&image)cardKey=image.alt||'';"
-              + "var category='undress';try{var page=String(cardPageName||'').toLowerCase();var parentPath=window.parent.location.pathname.toLowerCase();var mode=new URLSearchParams(window.parent.location.search||'').get('mode');"
-              + "if(page==='sex.html'||mode==='sex'||/\\/sex(?:\\/|\\.html|$)/.test(parentPath))category='sex';else if(page==='video.html'||mode==='video')category='video';}catch(error){console.warn('Unable to detect prompt category.',error);}"
+              + "var category='undress';try{var page=String(cardPageName||'').toLowerCase();var parentPath=window.parent.location.pathname.toLowerCase();var params=new URLSearchParams(window.parent.location.search||'');var mode=params.get('mode');var routeCategory=params.get('category');"
+              + "if(page==='sex.html'||mode==='sex'||routeCategory==='sex'||/\\/sex(?:\\/|\\.html|$)/.test(parentPath))category='sex';else if(page==='presets.html'||page==='video.html'||mode==='video'||routeCategory==='video')category='video';}catch(error){console.warn('Unable to detect prompt category.',error);}"
               + "return {cardKey:cardKey,category:category};"
               + "}"
+              + "function updateUploadCost(panel,mediaCategory){var credits=mediaCategory==='video'?20:mediaCategory==='sex'?2:1;var value=panel.querySelector('#miniapp-upload-cost-value');if(value)value.textContent=credits+(credits===1?' credit':' credits');}"
               + "function ensureUploadPanel(cardKey,mediaCategory){"
               + "var panel=document.getElementById('miniapp-upload-panel');"
-              + "if(panel){if(cardKey)panel.dataset.cardKey=cardKey;if(mediaCategory)panel.dataset.mediaCategory=mediaCategory;return panel;}"
+              + "if(panel){if(cardKey)panel.dataset.cardKey=cardKey;if(mediaCategory)panel.dataset.mediaCategory=mediaCategory;updateUploadCost(panel,mediaCategory||panel.dataset.mediaCategory);return panel;}"
               + "var style=document.createElement('style');"
-              + "style.textContent=`#miniapp-upload-panel{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;z-index:2147483647;}#miniapp-upload-shell{position:relative;width:min(100%,560px);max-height:88vh;overflow-y:auto;background:#171718;border-radius:24px 24px 0 0;padding:36px 18px max(16px,env(safe-area-inset-bottom));color:#f5f5f5;box-shadow:0 -16px 48px rgba(0,0,0,.35);}#miniapp-upload-shell:before{content:\"\";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:88px;height:4px;border-radius:4px;background:rgba(255,255,255,.16);}#miniapp-upload-close{position:absolute;top:12px;right:14px;border:0;background:transparent;color:#aaa;font-size:24px;cursor:pointer;}#miniapp-upload-tabs{display:flex;gap:8px;padding:4px;margin:0 auto 24px;border:1px solid rgba(255,255,255,.08);border-radius:999px;max-width:450px;}.miniapp-upload-tab{flex:1;border:0;background:transparent;color:#777;padding:10px;border-radius:999px;font-weight:700;cursor:pointer;}.miniapp-upload-tab.active{background:#29292a;color:#fff;}#miniapp-upload-title{font-size:clamp(1.5rem,5vw,2rem);line-height:1.2;text-align:center;font-weight:850;margin:10px 0 8px;}#miniapp-upload-description{font-size:15px;line-height:1.6;color:#aaa;text-align:center;margin:0 auto 22px;max-width:460px;}#miniapp-upload-description b{color:#fff;font-weight:700;}#miniapp-upload-video,#miniapp-upload-preview{display:block;width:100%;height:auto;max-height:280px;object-fit:cover;border-radius:18px;background:#111;cursor:pointer;}#miniapp-upload-status{min-height:18px;margin-top:8px;text-align:center;color:#aaa;font-size:13px;}#miniapp-upload-progress{margin-top:16px;padding:14px 16px;border:1px solid rgba(255,148,22,.16);border-radius:16px;background:linear-gradient(135deg,rgba(255,142,17,.08),rgba(255,72,17,.035));}#miniapp-upload-progress[hidden],#miniapp-download[hidden]{display:none;}#miniapp-upload-progress-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:#ddd;font-size:13px;font-weight:700;}#miniapp-upload-percent{color:#ffad43;font-variant-numeric:tabular-nums;font-size:15px;}#miniapp-upload-track{height:8px;overflow:hidden;border-radius:999px;background:#303033;}#miniapp-upload-progress-fill{position:relative;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9a1d,#ff5415);box-shadow:0 0 14px rgba(255,116,0,.52);transition:width .35s ease;}#miniapp-upload-progress-fill:after{content:\"\";position:absolute;inset:0;background:linear-gradient(100deg,transparent 15%,rgba(255,255,255,.62) 50%,transparent 85%);transform:translateX(-100%);animation:miniapp-upload-shimmer 1.4s infinite;}#miniapp-upload-progress.is-complete #miniapp-upload-progress-fill:after{animation:none;transform:translateX(100%);}#miniapp-upload-balance{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);padding:14px 16px;border-radius:999px;margin-top:14px;color:#999;font-weight:700;}#miniapp-upload-balance span:last-child{padding:3px 8px;background:#383839;border-radius:999px;color:#fff;font-size:13px;}#miniapp-upload-button,#miniapp-download{display:block;width:100%;border:2px solid #ff9a1d;border-radius:999px;background:linear-gradient(90deg,#ff9a1d,#ff4b11);color:#fff;text-align:center;text-decoration:none;font:900 1rem/1.2 system-ui,sans-serif;padding:16px 18px;margin-top:18px;cursor:pointer;box-shadow:0 8px 20px rgba(255,116,0,.22);}#miniapp-upload-button:disabled{opacity:.7;cursor:wait;}#miniapp-download{border-color:rgba(255,255,255,.15);background:#29292a;box-shadow:none;}@keyframes miniapp-upload-shimmer{to{transform:translateX(100%);}}@media(max-width:600px){#miniapp-upload-shell{padding:36px 16px max(12px,env(safe-area-inset-bottom));}}`;"
+              + "style.textContent=`#miniapp-upload-panel{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;z-index:2147483647;}#miniapp-upload-shell{position:relative;width:min(100%,560px);max-height:88vh;overflow-y:auto;background:#171718;border-radius:24px 24px 0 0;padding:36px 18px max(16px,env(safe-area-inset-bottom));color:#f5f5f5;box-shadow:0 -16px 48px rgba(0,0,0,.35);}#miniapp-upload-shell:before{content:\"\";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:88px;height:4px;border-radius:4px;background:rgba(255,255,255,.16);}#miniapp-upload-close{position:absolute;top:12px;right:14px;border:0;background:transparent;color:#aaa;font-size:24px;cursor:pointer;}#miniapp-upload-tabs{display:flex;gap:8px;padding:4px;margin:0 auto 24px;border:1px solid rgba(255,255,255,.08);border-radius:999px;max-width:450px;}.miniapp-upload-tab{flex:1;border:0;background:transparent;color:#777;padding:10px;border-radius:999px;font-weight:700;cursor:pointer;}.miniapp-upload-tab.active{background:#29292a;color:#fff;}#miniapp-upload-title{font-size:clamp(1.5rem,5vw,2rem);line-height:1.2;text-align:center;font-weight:850;margin:10px 0 8px;}#miniapp-upload-description{font-size:15px;line-height:1.6;color:#aaa;text-align:center;margin:0 auto 22px;max-width:460px;}#miniapp-upload-description b{color:#fff;font-weight:700;}#miniapp-upload-video{display:block;width:100%;height:clamp(170px,52vw,280px);max-height:280px;aspect-ratio:16/9;object-fit:cover;border-radius:18px;background:#111;cursor:pointer;}#miniapp-upload-preview{display:block;width:100%;height:auto;max-height:280px;object-fit:cover;border-radius:18px;background:#111;cursor:pointer;}#miniapp-upload-status{min-height:18px;margin-top:8px;text-align:center;color:#aaa;font-size:13px;}#miniapp-upload-progress{margin-top:16px;padding:14px 16px;border:1px solid rgba(255,148,22,.16);border-radius:16px;background:linear-gradient(135deg,rgba(255,142,17,.08),rgba(255,72,17,.035));}#miniapp-upload-progress[hidden],#miniapp-download[hidden]{display:none;}#miniapp-upload-progress-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:#ddd;font-size:13px;font-weight:700;}#miniapp-upload-percent{color:#ffad43;font-variant-numeric:tabular-nums;font-size:15px;}#miniapp-upload-track{height:8px;overflow:hidden;border-radius:999px;background:#303033;}#miniapp-upload-progress-fill{position:relative;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9a1d,#ff5415);box-shadow:0 0 14px rgba(255,116,0,.52);transition:width .35s ease;}#miniapp-upload-progress-fill:after{content:\"\";position:absolute;inset:0;background:linear-gradient(100deg,transparent 15%,rgba(255,255,255,.62) 50%,transparent 85%);transform:translateX(-100%);animation:miniapp-upload-shimmer 1.4s infinite;}#miniapp-upload-progress.is-complete #miniapp-upload-progress-fill:after{animation:none;transform:translateX(100%);}#miniapp-upload-cost{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);padding:14px 16px;border-radius:999px;margin-top:14px;color:#999;font-weight:700;}#miniapp-upload-cost span:last-child{padding:3px 8px;background:#383839;border-radius:999px;color:#fff;font-size:13px;}#miniapp-upload-button,#miniapp-download{display:block;width:100%;border:2px solid #ff9a1d;border-radius:999px;background:linear-gradient(90deg,#ff9a1d,#ff4b11);color:#fff;text-align:center;text-decoration:none;font:900 1rem/1.2 system-ui,sans-serif;padding:16px 18px;margin-top:18px;cursor:pointer;box-shadow:0 8px 20px rgba(255,116,0,.22);}#miniapp-upload-button:disabled{opacity:.7;cursor:wait;}#miniapp-download{border-color:rgba(255,255,255,.15);background:#29292a;box-shadow:none;}@keyframes miniapp-upload-shimmer{to{transform:translateX(100%);}}@media(max-width:600px){#miniapp-upload-shell{padding:36px 16px max(12px,env(safe-area-inset-bottom));}}`;"
               + "document.head.appendChild(style);"
               + "var panel=document.createElement('div');"
               + "panel.id='miniapp-upload-panel';panel.dataset.cardKey=cardKey||'undress';panel.dataset.mediaCategory=mediaCategory||'undress';"
               + "panel.setAttribute('role','dialog');"
               + "panel.setAttribute('aria-modal','true');"
-              + "panel.innerHTML=`<div id=\"miniapp-upload-shell\"><button id=\"miniapp-upload-close\" aria-label=\"Close\" type=\"button\">×</button><div id=\"miniapp-upload-tabs\"><button class=\"miniapp-upload-tab active\" type=\"button\">Upload</button><button class=\"miniapp-upload-tab\" type=\"button\">Settings</button></div><h1 id=\"miniapp-upload-title\">Upload photo to Undress</h1><div id=\"miniapp-upload-description\">It is necessary to have <b>a relaxed pose and a minimum of clothes</b>. Submit a photo you would like to change clothes on</div><video id=\"miniapp-upload-video\" src=\"/_legacy/yukle.mp4\" autoplay loop muted playsinline preload=\"metadata\"></video><input id=\"miniapp-upload-input\" type=\"file\" accept=\"image/*\" hidden><div id=\"miniapp-upload-status\" role=\"status\" aria-live=\"polite\"></div><div id=\"miniapp-upload-progress\" hidden><div id=\"miniapp-upload-progress-head\"><span id=\"miniapp-upload-progress-label\">Preparing photo...</span><span id=\"miniapp-upload-percent\">0%</span></div><div id=\"miniapp-upload-track\"><div id=\"miniapp-upload-progress-fill\"></div></div></div><div id=\"miniapp-upload-balance\"><span>Balance</span><span>0 credits</span></div><button id=\"miniapp-upload-button\" type=\"button\">Upload</button><a id=\"miniapp-download\" hidden download>Download image</a></div>`;"
-              + "panel.addEventListener('click',function(event){if(event.target===panel||event.target.id==='miniapp-upload-close'){panel.remove();}});"
-              + "document.body.appendChild(panel);"
+              + "panel.innerHTML=`<div id=\"miniapp-upload-shell\"><button id=\"miniapp-upload-close\" aria-label=\"Close\" type=\"button\">×</button><div id=\"miniapp-upload-tabs\"><button class=\"miniapp-upload-tab active\" type=\"button\">Upload</button><button class=\"miniapp-upload-tab\" type=\"button\">Settings</button></div><h1 id=\"miniapp-upload-title\">Upload photo to Undress</h1><div id=\"miniapp-upload-description\">It is necessary to have <b>a relaxed pose and a minimum of clothes</b>. Submit a photo you would like to change clothes on</div><video id=\"miniapp-upload-video\" data-src=\"/_legacy/yukle.mp4?v=20261107\" autoplay loop muted playsinline webkit-playsinline preload=\"none\"></video><input id=\"miniapp-upload-input\" type=\"file\" accept=\"image/*\" hidden><div id=\"miniapp-upload-status\" role=\"status\" aria-live=\"polite\"></div><div id=\"miniapp-upload-progress\" hidden><div id=\"miniapp-upload-progress-head\"><span id=\"miniapp-upload-progress-label\">Preparing photo...</span><span id=\"miniapp-upload-percent\">0%</span></div><div id=\"miniapp-upload-track\"><div id=\"miniapp-upload-progress-fill\"></div></div></div><div id=\"miniapp-upload-cost\"><span>Cost</span><span id=\"miniapp-upload-cost-value\">1 credit</span></div><button id=\"miniapp-upload-button\" type=\"button\">Upload</button><a id=\"miniapp-download\" hidden download>Download image</a></div>`;"
+              + "panel.addEventListener('click',function(event){if(event.target===panel||event.target.id==='miniapp-upload-close'){if(uploadVideoObjectUrl)URL.revokeObjectURL(uploadVideoObjectUrl);panel.remove();}});"
+              + "document.body.appendChild(panel);updateUploadCost(panel,mediaCategory);"
               + "var fileInput=panel.querySelector('#miniapp-upload-input');"
               + "var uploadButton=panel.querySelector('#miniapp-upload-button');"
               + "var uploadVideo=panel.querySelector('#miniapp-upload-video');"
+              + "var uploadVideoObjectUrl=null;uploadVideo.muted=true;uploadVideo.defaultMuted=true;uploadVideo.playsInline=true;uploadVideo.setAttribute('webkit-playsinline','');"
               + "var uploadStatus=panel.querySelector('#miniapp-upload-status');"
+              + "uploadVideo.addEventListener('error',function(){uploadStatus.textContent='Preview video could not be loaded. You can still choose a photo.';});"
+              + "fetch(uploadVideo.getAttribute('data-src'),{cache:'no-store'}).then(function(response){if(!response.ok)throw new Error('Preview request failed ('+response.status+').');return response.blob();}).then(function(blob){if(!blob.size)throw new Error('Preview video is empty.');uploadVideoObjectUrl=URL.createObjectURL(new Blob([blob],{type:'video/mp4'}));uploadVideo.src=uploadVideoObjectUrl;uploadVideo.load();var playPromise=uploadVideo.play();if(playPromise&&typeof playPromise.catch==='function')playPromise.catch(function(error){console.warn('Inline upload preview autoplay was blocked.',error);});}).catch(function(error){console.error('Could not fetch inline upload preview.',error);uploadStatus.textContent='Preview video could not be loaded. You can still choose a photo.';});"
               + "var progressBox=panel.querySelector('#miniapp-upload-progress');"
               + "var progressLabel=panel.querySelector('#miniapp-upload-progress-label');"
               + "var progressPercent=panel.querySelector('#miniapp-upload-percent');"
@@ -315,7 +395,7 @@
               + "var promptUrl='https://undressapp.onrender.com/prompts/'+encodeURIComponent(promptCategory)+'/'+encodeURIComponent(promptName);var promptText='';"
               + "try{var promptResponse=await fetch(promptUrl,{credentials:'omit'});if(!promptResponse.ok)throw new Error('Prompt file request failed ('+promptResponse.status+').');promptText=(await promptResponse.text()).replace(/^\\s*PROMPT\\s*:\\s*/i,'').trim();if(!promptText)throw new Error('Selected prompt file is empty.');}catch(error){console.error('Could not load selected prompt file.',error);isGenerating=false;uploadButton.disabled=false;uploadButton.textContent='Try again';uploadStatus.textContent='Could not load the selected prompt. Please try again.';return;}"
               + "var formData=new FormData();"
-              + "formData.append('image',file,file.name);formData.append('init_data',initData);formData.append('media_type','image');formData.append('media_category',promptCategory);formData.append('prompt',promptText);"
+              + "formData.append('image',file,file.name);formData.append('init_data',initData);formData.append('media_type',promptCategory==='video'?'video':'image');formData.append('media_category',promptCategory);formData.append('prompt',promptText);"
               + "var request=new XMLHttpRequest();"
               + "var generationStartedAt=0;"
               + "var progressTimer=0;"
@@ -351,6 +431,7 @@
               + "generationComplete=false;"
               + "progressBox.hidden=true;downloadLink.hidden=true;"
               + "if(selectedImageUrl)URL.revokeObjectURL(selectedImageUrl);"
+              + "if(uploadVideoObjectUrl){URL.revokeObjectURL(uploadVideoObjectUrl);uploadVideoObjectUrl=null;}"
               + "selectedImageUrl=URL.createObjectURL(file);"
               + "var preview=document.createElement('img');"
               + "preview.id='miniapp-upload-preview';preview.alt='Selected photo preview';preview.src=selectedImageUrl;"
@@ -363,6 +444,21 @@
               + "for(var i=0;i<tabs.length;i++){tabs[i].addEventListener('click',function(){for(var j=0;j<tabs.length;j++){tabs[j].classList.toggle('active',tabs[j]===this);}}); }"
               + "return panel;"
               + "}"
+              + "function openGenerationGallery(){"
+              + "if(document.getElementById('miniapp-gallery-panel'))return;"
+              + "var style=document.getElementById('miniapp-gallery-style');"
+              + "if(!style){style=document.createElement('style');style.id='miniapp-gallery-style';style.textContent='#miniapp-gallery-panel{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}#miniapp-gallery-shell{position:relative;display:flex;flex-direction:column;width:min(100%,980px);height:min(90vh,860px);height:min(90dvh,860px);max-height:calc(100vh - env(safe-area-inset-top) - 8px);max-height:calc(100dvh - env(safe-area-inset-top) - 8px);min-height:0;overflow:hidden;padding:24px 18px max(16px,env(safe-area-inset-bottom));border:1px solid rgba(255,255,255,.08);border-bottom:0;border-radius:26px 26px 0 0;background:radial-gradient(ellipse at 50% -35%,rgba(255,122,0,.13),transparent 58%),#111113;color:#f7f7f7;box-shadow:0 -20px 70px rgba(0,0,0,.55)}#miniapp-gallery-head{display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:0 0 16px;border-bottom:1px solid rgba(255,255,255,.08)}#miniapp-gallery-heading{min-width:0}#miniapp-gallery-eyebrow{display:block;margin:0 0 6px;color:#ff9a2e;font:800 10px/1 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase}#miniapp-gallery-head h2{margin:0;font:850 clamp(20px,5vw,26px)/1.15 system-ui,sans-serif;letter-spacing:-.035em}#miniapp-gallery-subtitle{margin:6px 0 0;color:#929298;font:13px/1.4 system-ui,sans-serif}#miniapp-gallery-count{flex:none;padding:7px 11px;border:1px solid rgba(255,143,31,.24);border-radius:999px;background:rgba(255,128,0,.08);color:#ffb05c;font:700 12px/1 system-ui,sans-serif}#miniapp-gallery-close{display:grid;place-items:center;flex:none;width:38px;height:38px;border:1px solid rgba(255,255,255,.09);border-radius:50%;background:rgba(255,255,255,.04);color:#ddd;font-size:24px;line-height:1;cursor:pointer;transition:background .16s,border-color .16s}#miniapp-gallery-close:hover{border-color:rgba(255,143,31,.45);background:rgba(255,128,0,.12)}#miniapp-gallery-grid{display:grid;flex:1 1 auto;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:max-content;gap:12px;min-width:0;min-height:0;overflow:auto;padding:1px 2px 8px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#48484d transparent}.miniapp-gallery-card{min-width:0;overflow:hidden;border:1px solid rgba(255,255,255,.075);border-radius:16px;background:linear-gradient(155deg,#202023,#171719 70%);box-shadow:0 5px 18px rgba(0,0,0,.2);transition:border-color .18s,transform .18s}.miniapp-gallery-card:hover{transform:translateY(-2px);border-color:rgba(255,143,31,.32)}.miniapp-gallery-preview{display:block;overflow:hidden;background:#09090a}.miniapp-gallery-preview img{display:block;width:100%;aspect-ratio:1;object-fit:cover;transition:transform .25s}.miniapp-gallery-preview:hover img{transform:scale(1.025)}.miniapp-gallery-card-body{padding:10px}.miniapp-gallery-name{overflow:hidden;margin:0 0 10px;color:#c9c9ce;font:600 12px/1.4 system-ui,sans-serif;text-overflow:ellipsis;white-space:nowrap}.miniapp-gallery-download{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:38px;padding:9px 12px;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:linear-gradient(100deg,#ff9b20,#ff6b13);box-shadow:0 4px 14px rgba(255,112,13,.2);color:#17110b;text-decoration:none;font:800 12px/1 system-ui,sans-serif;transition:filter .15s,transform .15s}.miniapp-gallery-download:hover{filter:brightness(1.08);transform:translateY(-1px)}.miniapp-gallery-download svg{width:15px;height:15px}#miniapp-gallery-status{display:grid;flex:1 1 auto;min-height:0;place-items:center;padding:24px 12px;text-align:center;color:#aaa;font:14px/1.5 system-ui,sans-serif}@media(min-width:600px){#miniapp-gallery-panel{align-items:center;padding:22px}#miniapp-gallery-shell{height:min(88vh,900px);max-height:88vh;padding:28px;border:1px solid rgba(255,255,255,.08);border-radius:26px}#miniapp-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px}}';document.head.appendChild(style);}"
+              + "var panel=document.createElement('div');panel.id='miniapp-gallery-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','My generations');"
+              + "panel.innerHTML='<section id=\"miniapp-gallery-shell\"><header id=\"miniapp-gallery-head\"><div id=\"miniapp-gallery-heading\"><span id=\"miniapp-gallery-eyebrow\">Your library</span><h2>My generations</h2><p id=\"miniapp-gallery-subtitle\">Your creations, all in one place.</p></div><span id=\"miniapp-gallery-count\" hidden></span><button id=\"miniapp-gallery-close\" type=\"button\" aria-label=\"Close\">&times;</button></header><div id=\"miniapp-gallery-status\" role=\"status\">Loading your images...</div><div id=\"miniapp-gallery-grid\"></div></section>';document.body.appendChild(panel);"
+              + "panel.addEventListener('click',function(event){if(event.target===panel||event.target.closest('#miniapp-gallery-close'))panel.remove();});"
+              + "var initData='';try{initData=(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData)||sessionStorage.getItem('undress_telegram_login')||'';}catch(error){}"
+              + "if(!initData){try{initData=window.parent.Telegram&&window.parent.Telegram.WebApp&&window.parent.Telegram.WebApp.initData||window.parent.sessionStorage.getItem('undress_telegram_login')||'';}catch(error){}}"
+              + "var status=panel.querySelector('#miniapp-gallery-status');var grid=panel.querySelector('#miniapp-gallery-grid');"
+              + "fetch('/api/miniapp/gallery',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({init_data:initData})})"
+              + ".then(function(response){return response.json().then(function(data){if(!response.ok)throw new Error(data.detail||'Could not load your images.');return data;});})"
+              + ".then(function(data){var files=Array.isArray(data.files)?data.files:[];var count=panel.querySelector('#miniapp-gallery-count');if(!files.length){status.textContent='You have no generated images yet.';return;}files.forEach(function(file){if(!file||typeof file.url!=='string'||file.url.indexOf('/outputs/')!==0)return;var card=document.createElement('article');card.className='miniapp-gallery-card';var preview=document.createElement('a');preview.className='miniapp-gallery-preview';preview.href=file.url;preview.target='_blank';preview.rel='noopener';var image=document.createElement('img');image.src=file.url;image.alt=file.name||'Generated image';image.loading='lazy';preview.appendChild(image);var body=document.createElement('div');body.className='miniapp-gallery-card-body';var name=document.createElement('p');name.className='miniapp-gallery-name';name.textContent=file.name||'Generated image';var download=document.createElement('a');download.className='miniapp-gallery-download';download.href=file.url;download.setAttribute('download',file.name||'generated-image');download.setAttribute('aria-label','Download '+(file.name||'generated image'));download.innerHTML='<svg viewBox=\"0 0 20 20\" fill=\"none\" aria-hidden=\"true\"><path d=\"M10 2.5v9m0 0 3.5-3.5M10 11.5 6.5 8M3.5 13v3.5h13V13\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Download</span>';body.appendChild(name);body.appendChild(download);card.appendChild(preview);card.appendChild(body);grid.appendChild(card);});status.remove();if(!grid.children.length){status.textContent='No images could be displayed.';panel.querySelector('#miniapp-gallery-shell').appendChild(status);return;}count.hidden=false;count.textContent=grid.children.length+' images';})"
+              + ".catch(function(error){console.error('Could not load generation gallery.',error);status.textContent=error.message||'Could not load your images.';});"
+              + "}"
               + "document.addEventListener('click',function(event){"
               + "var closeButton=event.target&&event.target.closest?event.target.closest('button'):null;"
               + "if(closeButton&&closeButton.querySelector('svg path[d=\"M6 18 18 6M6 6l12 12\"]')){event.preventDefault();event.stopImmediatePropagation();if(typeof router.closePlan==='function')router.closePlan();else router.navigate('/Image.html');return;}"
@@ -371,16 +467,22 @@
               + "event.preventDefault();event.stopImmediatePropagation();"
               + "var promptInfo=cardPromptInfo(event.target,trigger);ensureUploadPanel(promptInfo.cardKey,promptInfo.category);"
               + "},true);"
-              + "document.addEventListener('keydown',function(event){if(event.key==='Escape'){var panel=document.getElementById('miniapp-upload-panel');if(panel){panel.remove();}}});"
+              + "document.addEventListener('keydown',function(event){if(event.key==='Escape'){var panel=document.getElementById('miniapp-upload-panel');if(panel)panel.remove();var gallery=document.getElementById('miniapp-gallery-panel');if(gallery)gallery.remove();}});"
               + "document.addEventListener('click',function(event){"
-              + "var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;"
-              + "if(!link||link.hasAttribute('download')||(link.target&&link.target.toLowerCase()!=='_self'))return;"
+              + "var control=event.target&&event.target.closest?event.target.closest('a[href],button,[role=button],[data-testid],[data-action]'):null;"
+              + "if(!control||control.hasAttribute('download')||(control.target&&control.target.toLowerCase()!=='_self'))return;"
+              + "var controlInfo=[control.getAttribute('aria-label'),control.getAttribute('title'),control.getAttribute('data-testid'),control.getAttribute('data-action'),control.textContent,String(control.className||''),control.href||''].join(' ').toLowerCase();"
+              + "var mobileGalleryButton=/group\\/button/.test(controlInfo)&&String(control.textContent||'').trim()==='+';"
+              + "if(mobileGalleryButton||/my[\\s_-]*gen|gallery|generation.?history|generated.?images|image.?plus/.test(controlInfo)){event.preventDefault();event.stopImmediatePropagation();openGenerationGallery();return;}"
+              + "if(control.tagName!=='A')return;var link=control;"
               + "if(/^account\\b/i.test((link.textContent||'').trim())){event.preventDefault();event.stopImmediatePropagation();router.openAccount();return;}"
               + "var target;try{target=new URL(link.href,window.location.href);}catch(error){return;}"
               + "if(target.protocol!=='http:'&&target.protocol!=='https:')return;"
               + "if(target.origin===window.location.origin&&target.href.split('#')[0]===window.location.href.split('#')[0])return;"
-              + "event.preventDefault();event.stopImmediatePropagation();router.navigate(target.href);"
-              + "},true);})();</scr" + "ipt>";
+              + "router.prefetch(target.href);event.preventDefault();event.stopImmediatePropagation();router.navigate(target.href);"
+              + "},true);"
+              + "document.addEventListener('pointerover',function(event){var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;if(link)router.prefetch(link.href);},{passive:true});"
+              + "document.addEventListener('touchstart',function(event){var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;if(link)router.prefetch(link.href);},{passive:true});})();</scr" + "ipt>";
             var headMatch = /<head\b[^>]*>/i.exec(source);
             if (!headMatch) throw new Error("Page has no head element: " + pageName);
 
@@ -434,6 +536,42 @@
           loading.textContent = "This page could not be loaded. Please reload and try again.";
         }
 
+        function activatePendingFrame(frame) {
+          if (pendingFrame !== frame) return;
+
+          var previousFrame = activeFrame;
+          activeFrame = frame;
+          pendingFrame = null;
+          frame.style.visibility = "visible";
+          if (previousFrame && previousFrame !== frame) {
+            frame.dataset.routeTransition = "enter";
+            previousFrame.dataset.routeTransition = "exit";
+            previousFrame.setAttribute("aria-hidden", "true");
+            previousFrame.setAttribute("inert", "");
+            window.setTimeout(function () {
+              if (previousFrame.parentNode) previousFrame.remove();
+            }, window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 190);
+          }
+          screen.dataset.ready = "true";
+          screen.setAttribute("aria-busy", "false");
+          prefetchLinkedRoutes(frame);
+
+          try {
+            if (frame.contentDocument && frame.contentDocument.title) {
+              document.title = frame.contentDocument.title;
+            }
+          } catch (error) {
+            document.title = "Undress.app";
+          }
+        }
+
+        window.addEventListener("message", function (event) {
+          if (!pendingFrame || event.source !== pendingFrame.contentWindow) return;
+          if (event.data && event.data.type === "miniapp-page-dom-ready") {
+            activatePendingFrame(pendingFrame);
+          }
+        });
+
         function isPlanRoute(url, route) {
           var path = url.pathname.toLowerCase();
           var file = String(route.file || "").toLowerCase();
@@ -464,6 +602,10 @@
             return;
           }
 
+          if (activeFrame && activeFrame.contentWindow) {
+            activeFrame.contentWindow.postMessage({ type: "miniapp-route-leaving" }, "*");
+          }
+
           currentFile = route.file;
           currentSearch = url.search;
           currentHash = url.hash;
@@ -479,32 +621,7 @@
           nextFrame.setAttribute("referrerpolicy", "same-origin");
           var pageAssigned = false;
           nextFrame.addEventListener("load", function () {
-            if (!pageAssigned || pendingFrame !== nextFrame) return;
-
-            var previousFrame = activeFrame;
-            activeFrame = nextFrame;
-            pendingFrame = null;
-            nextFrame.style.visibility = "visible";
-            if (previousFrame && previousFrame !== nextFrame) {
-              nextFrame.dataset.routeTransition = "enter";
-              previousFrame.dataset.routeTransition = "exit";
-              previousFrame.setAttribute("aria-hidden", "true");
-              previousFrame.setAttribute("inert", "");
-              var exitingFrame = previousFrame;
-              window.setTimeout(function () {
-                if (exitingFrame.parentNode) exitingFrame.remove();
-              }, window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 190);
-            }
-            screen.dataset.ready = "true";
-            screen.setAttribute("aria-busy", "false");
-
-            try {
-              if (nextFrame.contentDocument && nextFrame.contentDocument.title) {
-                document.title = nextFrame.contentDocument.title;
-              }
-            } catch (error) {
-              document.title = "Undress.app";
-            }
+            if (pageAssigned) activatePendingFrame(nextFrame);
           });
 
           if (pendingFrame) pendingFrame.remove();
@@ -557,6 +674,7 @@
 
         window.__miniappRouter = {
           navigate: navigateFromFrame,
+          prefetch: prefetchRoute,
           closePlan: function () {
             showRoute(new URL(planReturnUrl.href), "push");
           },

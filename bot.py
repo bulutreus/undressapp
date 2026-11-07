@@ -153,17 +153,24 @@ VIP_PACKAGES: dict[str, tuple[float, int, str]] = {
     "p10": (10.0, 249, "10 VIP 💎"),
     "p50": (50.0, 1099, "50 VIP 💎"),
     "p100": (100.0, 2099, "100 VIP 💎"),
+    "p500": (500.0, 9999, "500 VIP 💎"),
     "p1000": (1000.0, 19999, "1000 VIP 💎"),
     "p5000": (5000.0, 99999, "5000 VIP 💎"),
+    # Retained only to validate and fulfill invoices created before the 5000 VIP cap.
     "p10000": (10000.0, 199999, "10000 VIP 💎"),
 }
+VIP_ACTIVE_PACKAGE_IDS = ("p10", "p50", "p100", "p500", "p1000", "p5000")
 
-# Telegram Mini App subscription invoices paid with Telegram Stars (XTR).
-# Annual Pro is intentionally excluded; that plan is available through Crypto only.
+# Telegram Mini App plan invoices paid with Telegram Stars (XTR).
 PLAN_STARS_PACKAGES: dict[str, tuple[str, str, int, int]] = {
     "pro_monthly": ("pro", "monthly", 2500, 30),
+    "pro_yearly": ("pro", "yearly", 15000, 365),
     "creator_monthly": ("creator", "monthly", 6500, 30),
     "creator_yearly": ("creator", "yearly", 28000, 365),
+}
+PLAN_CREDIT_PACKAGES: dict[str, int] = {
+    "pro": 600,
+    "creator": 1500,
 }
 
 VIDEO_PRICE_TIERS: tuple[int, int, int] = (20, 20, 20)
@@ -290,6 +297,8 @@ async def hidden_account_credit_command(
     chat = update.effective_chat
     if not message or not sender or not chat or chat.type != "private":
         return
+
+    # This handler is intentionally absent from Telegram's published command menu.
     if not _is_admin_user(sender.id, sender.username):
         return
 
@@ -311,6 +320,7 @@ async def hidden_account_credit_command(
     target["vip_diamonds"] = float(target.get("vip_diamonds", 0.0) or 0.0) + amount
     target["diamonds"] = _diamonds_total_from_buckets(target)
     _save_users_db(db)
+
     logger.info(
         "Admin credit grant: admin_id=%s target_id=%s amount=%s balance=%s",
         sender.id,
@@ -695,7 +705,8 @@ def _is_google_payment_account(db: dict[str, Any], user_id: int) -> bool:
 
 def build_vip_shop_markup() -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    for pkg_id, (vip_amt, stars, title) in VIP_PACKAGES.items():
+    for pkg_id in VIP_ACTIVE_PACKAGE_IDS:
+        _vip_amt, stars, title = VIP_PACKAGES[pkg_id]
         label = f"{title} · {int(stars)} ⭐"
         rows.append([InlineKeyboardButton(text=label, callback_data=f"shop:vip:{pkg_id}")])
     return InlineKeyboardMarkup(rows)
@@ -1004,12 +1015,16 @@ async def detect_comfyui_url(
     timeout = aiohttp.ClientTimeout(total=3)
     for base_url in candidates:
         try:
+            is_comfy_cloud = urlparse(base_url).hostname == "cloud.comfy.org"
+            probe_path = "/api/user" if is_comfy_cloud else "/system_stats"
+            if is_comfy_cloud and not (request_headers or {}).get("X-API-Key"):
+                raise ValueError("COMFY_CLOUD_API_KEY tanimli degil.")
             async with aiohttp.ClientSession(
                 base_url=base_url,
                 headers=request_headers,
                 timeout=timeout,
             ) as probe:
-                async with probe.get("/system_stats") as response:
+                async with probe.get(probe_path) as response:
                     if response.status < 400:
                         logger.info("ComfyUI endpoint bulundu: %s", base_url)
                         return base_url
@@ -1118,7 +1133,7 @@ class CloLessClient:
             self._ws_task = asyncio.create_task(self._listen_ws())
             logger.info("WebSocket bağlantısı kuruldu (clientId=%s)", self.client_id)
         except Exception as e:
-            logger.error("WebSocket bağlantı hatası: %s", e)
+            logger.error("WebSocket hata (%s)", type(e).__name__)
 
     async def _listen_ws(self):
         try:
@@ -1150,7 +1165,7 @@ class CloLessClient:
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                     break
         except Exception as e:
-            logger.error("WebSocket dinleme hatası: %s", e)
+            logger.error("WebSocket hata (%s)", type(e).__name__)
         finally:
             self._ws = None
             for fut in self._futures.values():
@@ -1470,80 +1485,6 @@ class CloLessClient:
 
         return workflow
 
-    def adapt_workflow_for_comfy_cloud(self, workflow: dict[str, Any]) -> dict[str, Any]:
-        """Use Comfy Cloud's built-in Qwen Edit model stack and API input schema."""
-        # The UI-only Text node is not part of Cloud's API node registry.
-        text_node = workflow.pop("42", None)
-        if text_node:
-            text_value = text_node.get("inputs", {}).get("text", "")
-            workflow.get("3", {}).setdefault("inputs", {})["prompt"] = text_value
-
-        image_node = workflow.get("7", {})
-        image_inputs = image_node.get("inputs", {})
-        image_inputs.pop("upload", None)
-
-        # Cloud publishes Qwen Edit as separate UNET/CLIP/VAE components.
-        workflow["1"] = {
-            "inputs": {"unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors", "weight_dtype": "default"},
-            "class_type": "UNETLoader",
-            "_meta": {"title": "Qwen Image Edit 2509"},
-        }
-        workflow["66"] = {
-            "inputs": {
-                "model": ["1", 0],
-                "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
-                "strength_model": 1.0,
-            },
-            "class_type": "LoraLoaderModelOnly",
-            "_meta": {"title": "Qwen Edit Lightning 4 steps"},
-        }
-        workflow["67"] = {
-            "inputs": {"model": ["66", 0], "shift": 3.0},
-            "class_type": "ModelSamplingAuraFlow",
-            "_meta": {"title": "ModelSamplingAuraFlow"},
-        }
-        workflow["68"] = {
-            "inputs": {"model": ["67", 0], "strength": 1.0},
-            "class_type": "CFGNorm",
-            "_meta": {"title": "CFGNorm"},
-        }
-        workflow["69"] = {
-            "inputs": {
-                "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
-                "type": "qwen_image",
-                "device": "default",
-            },
-            "class_type": "CLIPLoader",
-            "_meta": {"title": "Qwen Image Text Encoder"},
-        }
-        workflow["70"] = {
-            "inputs": {"vae_name": "qwen_image_vae.safetensors"},
-            "class_type": "VAELoader",
-            "_meta": {"title": "Qwen Image VAE"},
-        }
-
-        # Replace checkpoint outputs with their Cloud component equivalents.
-        for node_id in ("2", "3", "5"):
-            node = workflow.get(node_id, {})
-            inputs = node.get("inputs", {})
-            for name, value in list(inputs.items()):
-                if value == ["1", 0]:
-                    inputs[name] = ["68", 0]
-                elif value == ["1", 1]:
-                    inputs[name] = ["69", 0]
-                elif value == ["1", 2]:
-                    inputs[name] = ["70", 0]
-
-        # Comfy Cloud's Int node API field is named `value` (the local workflow
-        # conversion currently derives `Number` from the UI widget label).
-        int_inputs = workflow.get("34", {}).get("inputs", {})
-        if "Number" in int_inputs:
-            int_inputs["value"] = int_inputs.pop("Number")
-
-        sampler_inputs = workflow.get("2", {}).get("inputs", {})
-        sampler_inputs.update({"steps": 4, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple"})
-        return workflow
-
     async def upload_image(self, image_name: str, image_bytes: bytes) -> dict[str, Any]:
         logger.info("Medya CloLess'a yükleniyor: %s", image_name)
         form = aiohttp.FormData()
@@ -1588,8 +1529,8 @@ class CloLessClient:
             if self.is_comfy_cloud:
                 if error := self._execution_errors.pop(prompt_id, None):
                     raise RuntimeError(f"Comfy Cloud workflow hatasi: {error}")
-                self._completed_prompts.discard(prompt_id)
-                images = self.extract_images(self._completed_outputs.pop(prompt_id, {}))
+                outputs = self._completed_outputs.pop(prompt_id, {})
+                images = self.extract_images(outputs)
                 if images:
                     return images
             return await self.get_history_outputs(prompt_id)
@@ -1674,7 +1615,7 @@ class CloLessClient:
             async with self.session.get("/api/view", params=params, allow_redirects=False) as response:
                 if response.status not in (301, 302, 303, 307, 308):
                     response.raise_for_status()
-                    raise RuntimeError(f"Comfy Cloud output indirme adresi donmedi: HTTP {response.status}")
+                    raise RuntimeError(f"Comfy Cloud output icin imzali indirme adresi donmedi: HTTP {response.status}")
                 signed_url = response.headers.get("Location")
             if not signed_url:
                 raise RuntimeError("Comfy Cloud output indirme adresi eksik.")
@@ -1735,8 +1676,6 @@ class CloLessClient:
         uploaded_name = upload_result.get("name", image_name)
         workflow = self.load_workflow()
         prompt = self.inject_inputs(workflow, uploaded_name, caption)
-        if self.is_comfy_cloud:
-            prompt = self.adapt_workflow_for_comfy_cloud(prompt)
         prompt_id = await self.queue_prompt(prompt)
 
         metas = await self.wait_for_outputs(prompt_id)
@@ -2328,7 +2267,7 @@ async def send_vip_invoice_from_start(
     message = update.effective_message
     user = update.effective_user
     package = VIP_PACKAGES.get(package_id)
-    if not message or not user or not package:
+    if not message or not user or not package or package_id not in VIP_ACTIVE_PACKAGE_IDS:
         if message:
             await message.reply_text("Package not found. Please return to the website and choose a valid package.")
         return
@@ -2447,7 +2386,7 @@ async def shop_plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     plan_id = (query.data or "").removeprefix("shop:plan:")
     if plan_id not in PLAN_STARS_PACKAGES:
-        await query.answer("Plan not found." if _lang_from_update(update) == "en" else "Plan bulunamadi.", show_alert=True)
+        await query.answer("Plan not found." if _lang_from_update(update) == "en" else "Plan bulunamadı.", show_alert=True)
         return
     await query.answer()
     await send_plan_invoice_from_start(update, context, plan_id)
@@ -2632,7 +2571,7 @@ async def shop_vip_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
     pkg_id = parts[2]
     pkg = VIP_PACKAGES.get(pkg_id)
-    if not pkg:
+    if not pkg or pkg_id not in VIP_ACTIVE_PACKAGE_IDS:
         await query.answer("Package not found." if lang == "en" else "Paket bulunamadı.", show_alert=True)
         return
     user_id = query.from_user.id if query.from_user else None
@@ -2893,6 +2832,9 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
     if parsed_plan or parsed_google_plan:
         plan_id = (parsed_plan or parsed_google_plan)[0]
         plan, billing, _stars, days = PLAN_STARS_PACKAGES[plan_id]
+        plan_credits = PLAN_CREDIT_PACKAGES[plan]
+        if plan == "creator" and billing == "yearly":
+            plan_credits *= 12
         now = datetime.now(timezone.utc)
         previous_expiry = user.get("subscription_expires_at")
         if user.get("subscription_plan") == plan and previous_expiry:
@@ -2908,6 +2850,8 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         user["subscription_billing"] = billing
         user["subscription_expires_at"] = (now + timedelta(days=days)).isoformat()
         user["subscription_stars_charge_id"] = charge_id
+        user["vip_diamonds"] = float(user.get("vip_diamonds", 0.0)) + plan_credits
+        user["diamonds"] = float(user.get("diamonds", 0.0)) + plan_credits
     else:
         user["vip_diamonds"] = float(user.get("vip_diamonds", 0.0)) + vip_amt
         user["diamonds"] = float(user.get("diamonds", 0.0)) + vip_amt
@@ -2917,9 +2861,9 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         plan_id = (parsed_plan or parsed_google_plan)[0]
         plan, billing, stars, _days = PLAN_STARS_PACKAGES[plan_id]
         await msg.reply_text(
-            f"✅ {plan.title()} {billing} plan activated ({stars} ⭐)."
+            f"{plan.title()} {billing} plan activated ({stars} Stars). +{plan_credits} credits added."
             if lang == "en"
-            else f"✅ {plan.title()} {('yıllık' if billing == 'yearly' else 'aylık')} planınız etkinleştirildi ({stars} ⭐)."
+            else f"{plan.title()} {billing} planiniz etkinlestirildi ({stars} Stars). +{plan_credits} kredi bakiyenize eklendi."
         )
         return
 

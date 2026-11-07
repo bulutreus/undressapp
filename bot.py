@@ -1470,6 +1470,79 @@ class CloLessClient:
 
         return workflow
 
+    def adapt_workflow_for_comfy_cloud(self, workflow: dict[str, Any]) -> dict[str, Any]:
+        """Use Comfy Cloud's built-in Qwen Edit model stack and API input schema."""
+        # The UI-only Text node is not part of Cloud's API node registry.
+        text_node = workflow.pop("42", None)
+        if text_node:
+            text_value = text_node.get("inputs", {}).get("text", "")
+            workflow.get("3", {}).setdefault("inputs", {})["prompt"] = text_value
+
+        image_node = workflow.get("7", {})
+        image_inputs = image_node.get("inputs", {})
+        image_inputs.pop("upload", None)
+
+        # Cloud publishes Qwen Edit as separate UNET/CLIP/VAE components.
+        workflow["1"] = {
+            "inputs": {"unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors", "weight_dtype": "default"},
+            "class_type": "UNETLoader",
+            "_meta": {"title": "Qwen Image Edit 2509"},
+        }
+        workflow["66"] = {
+            "inputs": {
+                "model": ["1", 0],
+                "lora_name": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+                "strength_model": 1.0,
+            },
+            "class_type": "LoraLoaderModelOnly",
+            "_meta": {"title": "Qwen Edit Lightning 4 steps"},
+        }
+        workflow["67"] = {
+            "inputs": {"model": ["66", 0], "shift": 3.0},
+            "class_type": "ModelSamplingAuraFlow",
+            "_meta": {"title": "ModelSamplingAuraFlow"},
+        }
+        workflow["68"] = {
+            "inputs": {"model": ["67", 0], "strength": 1.0},
+            "class_type": "CFGNorm",
+            "_meta": {"title": "CFGNorm"},
+        }
+        workflow["69"] = {
+            "inputs": {
+                "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+                "type": "qwen_image",
+                "device": "default",
+            },
+            "class_type": "CLIPLoader",
+            "_meta": {"title": "Qwen Image Text Encoder"},
+        }
+        workflow["70"] = {
+            "inputs": {"vae_name": "qwen_image_vae.safetensors"},
+            "class_type": "VAELoader",
+            "_meta": {"title": "Qwen Image VAE"},
+        }
+
+        # Replace checkpoint outputs with their Cloud component equivalents.
+        for node in workflow.values():
+            inputs = node.get("inputs", {})
+            for name, value in list(inputs.items()):
+                if value == ["1", 0]:
+                    inputs[name] = ["68", 0]
+                elif value == ["1", 1]:
+                    inputs[name] = ["69", 0]
+                elif value == ["1", 2]:
+                    inputs[name] = ["70", 0]
+
+        # Comfy Cloud's Int node API field is named `value` (the local workflow
+        # conversion currently derives `Number` from the UI widget label).
+        int_inputs = workflow.get("34", {}).get("inputs", {})
+        if "Number" in int_inputs:
+            int_inputs["value"] = int_inputs.pop("Number")
+
+        sampler_inputs = workflow.get("2", {}).get("inputs", {})
+        sampler_inputs.update({"steps": 4, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple"})
+        return workflow
+
     async def upload_image(self, image_name: str, image_bytes: bytes) -> dict[str, Any]:
         logger.info("Medya CloLess'a yükleniyor: %s", image_name)
         form = aiohttp.FormData()
@@ -1661,6 +1734,8 @@ class CloLessClient:
         uploaded_name = upload_result.get("name", image_name)
         workflow = self.load_workflow()
         prompt = self.inject_inputs(workflow, uploaded_name, caption)
+        if self.is_comfy_cloud:
+            prompt = self.adapt_workflow_for_comfy_cloud(prompt)
         prompt_id = await self.queue_prompt(prompt)
 
         metas = await self.wait_for_outputs(prompt_id)

@@ -40,6 +40,7 @@ from bot import (
     CloLessClient,
     PLAN_STARS_PACKAGES,
     PHOTO_COST_DIAMONDS,
+    VIP_ACTIVE_PACKAGE_IDS,
     VIP_PACKAGES,
     _deduct_diamonds,
     _diamonds_total_from_buckets,
@@ -717,7 +718,7 @@ def create_app() -> FastAPI:
             comfy_cloud_api_key = os.getenv("COMFY_CLOUD_API_KEY", "").strip()
             if not comfy_cloud_api_key:
                 raise ValueError(
-                    "Comfy Cloud icin COMFY_CLOUD_API_KEY gerekli. API key'i Render ortam degiskenlerinde tanimlayin."
+                    "Comfy Cloud icin COMFY_CLOUD_API_KEY gerekli. API key'i .env veya Render ortam degiskenlerinde tanimlayin."
                 )
             comfyui_headers = {**(comfyui_headers or {}), "X-API-Key": comfy_cloud_api_key}
         resolved_url = await detect_comfyui_url(
@@ -1312,12 +1313,12 @@ def create_app() -> FastAPI:
         if not parsed:
             raise HTTPException(status_code=401, detail="Sign in before purchasing credits.")
 
-        package = VIP_PACKAGES.get(body.package_id.strip().lower())
-        if not package:
+        package_id = body.package_id.strip().lower()
+        package = VIP_PACKAGES.get(package_id)
+        if not package or package_id not in VIP_ACTIVE_PACKAGE_IDS:
             raise HTTPException(status_code=400, detail="Credit package not found.")
 
         vip_amount, stars, _label = package
-        package_id = body.package_id.strip().lower()
         user_id = int(parsed["user_id"])
         google_account = _auth_provider(parsed) == "google"
         if google_account and not _is_google_account_user(user_id):
@@ -1737,6 +1738,7 @@ def create_app() -> FastAPI:
 
                     return StreamingResponse(iter_video_range(), status_code=206, media_type="video/mp4", headers=headers)
 
+                headers["Accept-Ranges"] = "bytes"
                 if request.method == "HEAD":
                     headers["Content-Length"] = str(file_size)
                     return Response(status_code=200, media_type="video/mp4", headers=headers)

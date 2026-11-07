@@ -4,7 +4,6 @@
   var videos = document.querySelectorAll("video[data-lazy-autoplay]");
   if (!videos.length) return;
   var previewRequested = new WeakSet();
-  var isMobile = window.matchMedia("(max-width: 640px)").matches;
 
   function showPreviewFrame(video) {
     video.preload = "metadata";
@@ -30,6 +29,7 @@
   function startPlayback(video) {
     video.muted = true;
     video.playsInline = true;
+    video.preload = "auto";
     var playback = video.play();
     if (playback && typeof playback.catch === "function") {
       playback.catch(function (error) {
@@ -38,23 +38,6 @@
       });
     }
   }
-
-  if (isMobile) {
-    videos.forEach(function (video) {
-      var source = video.querySelector("source[data-mobile-src]");
-      var mobileSource = source && source.getAttribute("data-mobile-src");
-      if (!mobileSource) return;
-      source.setAttribute("src", mobileSource);
-      video.load();
-    });
-  }
-
-  if (!("IntersectionObserver" in window)) {
-    videos.forEach(startPlayback);
-    return;
-  }
-
-  var visibility = new Map();
 
   videos.forEach(function (video) {
     video.addEventListener(
@@ -67,40 +50,24 @@
     );
   });
 
-  var observer = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        visibility.set(entry.target, entry.isIntersecting ? entry.intersectionRatio : 0);
-      });
-
-      if (isMobile) {
-        // On phones, concurrent previews compete for bandwidth and delay the
-        // video the user is currently looking at. Play only the most visible.
-        var activeVideo = null;
-        var activeRatio = 0;
-        visibility.forEach(function (ratio, video) {
-          if (ratio > activeRatio) {
-            activeVideo = video;
-            activeRatio = ratio;
-          }
-          if (ratio === 0) video.pause();
-        });
-        visibility.forEach(function (_ratio, video) {
-          if (video !== activeVideo) video.pause();
-        });
-        if (activeVideo) startPlayback(activeVideo);
-        return;
-      }
-
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) startPlayback(entry.target);
-        else entry.target.pause();
-      });
-    },
-    { rootMargin: isMobile ? "48px 0px" : "160px 0px", threshold: [0.1, 0.25, 0.5, 0.75] }
-  );
-
-  videos.forEach(function (video) {
-    observer.observe(video);
+  window.addEventListener("message", function (event) {
+    if (!event.data || event.data.type !== "miniapp-route-leaving") return;
+    videos.forEach(function (video) {
+      video.pause();
+      video.preload = "none";
+      video.load();
+    });
   });
+
+  // Wait until the page has rendered before starting all previews together;
+  // this keeps video requests from delaying the Video menu transition.
+  function startAllPreviews() {
+    videos.forEach(startPlayback);
+  }
+
+  if (document.readyState === "complete") {
+    window.setTimeout(startAllPreviews, 0);
+  } else {
+    window.addEventListener("load", startAllPreviews, { once: true });
+  }
 })();
